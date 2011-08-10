@@ -43,7 +43,8 @@ if (defined('ENVIRONMENT'))
 	
 		case 'testing':
 		case 'production':
-			error_reporting(0);
+			//error_reporting(0);
+			error_reporting(E_ALL);
 		break;
 
 		default:
