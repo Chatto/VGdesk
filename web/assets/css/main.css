@@ -1,6 +1,6 @@
-<style type="text/css">
-@import url (assets/reset.css); /*not working for some reason*/
-</style>
+@import url('reset.css');
+@import url(http://fonts.googleapis.com/css?family=Kameron:700);
+
 
 .p
 {
@@ -9,34 +9,66 @@ color: #FFF;
 
 #page-body
 {
-	background: EEE url('http://www.vgdesk.org/web/assets/images/pagebody-bg.gif') repeat left top;
-	top: 30px;
+	background: #EEE url('images/pagebody-bg.gif');
 	height: auto;
-	bottom: auto;
+	width:100%;
+	position: fixed;
+	top: 30px;
+	bottom: 30px;
+	bottom: 0;
 	
 }
 
 #header
 {
-	background: #CCC url('assets/images/header-bg.gif'); /*something is messing up with these too*/
+	background: #CCC url('images/header-bg.gif');
 	background-repeat: repeat-x;
 	width: 100%;
 	height: 30px;
+	position: relative;
 }
 
 #footer
 {
-	background: #CCC url('assets/images/footer-bg.gif');
+	background: #CCC url('images/footer-bg.gif');
 	background-repeat: repeat-x;
 	width: 100%;
 	height: 30px;
 	position: absolute;
 	top: auto;
 	bottom: 0;
-	
+	overflow: hidden;
 }
 
-.HeaderButton
+a
+{
+	text-decoration: none;
+	color: #FFF;
+}
+
+a:hover
+{
+	color: #febf01;
+	text-shadow: 1px 1px 0px #ff7400;
+}
+
+.header-button
 {
 	display: inline;
+	color: #FFF;
+	font-family: Kameron;
+	font-size: 18pt;
+	text-shadow: 1px 1px 0px #CCC;
+	font-weight: bold;
+	font-variant: smallcaps;
+	margin-left: 30px;
+	position: relative;
+	bottom: 8px;
+}
+
+#logo
+{
+	display: inline;
+	width: auto;
+	height: auto;
 }
