@@ -17,7 +17,7 @@
 </head>
 
 <div id="header">
-	<img id="logo" src="assets/css/images/logo.png"/>
+	<img id="logo" src="assets/images/logo.png"/>
 	<p class="header-button"><a href="#">Overview</a></p>
 	<p class="header-button"><a href="#">Files</a></p>
 	<p class="header-button"><a href="#">Planner</a></p>

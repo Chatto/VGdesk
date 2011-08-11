@@ -9,7 +9,7 @@ color: #FFF;
 
 #page-body
 {
-	background: #EEE url('images/pagebody-bg.gif');
+	background: #EEE url('../images/pagebody-bg.gif');
 	height: auto;
 	width:100%;
 	position: fixed;
@@ -21,7 +21,7 @@ color: #FFF;
 
 #header
 {
-	background: #CCC url('images/header-bg.gif');
+	background: #CCC url('../images/header-bg.gif');
 	background-repeat: repeat-x;
 	width: 100%;
 	height: 30px;
@@ -30,7 +30,7 @@ color: #FFF;
 
 #footer
 {
-	background: #CCC url('images/footer-bg.gif');
+	background: #CCC url('../images/footer-bg.gif');
 	background-repeat: repeat-x;
 	width: 100%;
 	height: 30px;
