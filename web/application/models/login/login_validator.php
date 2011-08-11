@@ -14,6 +14,7 @@ class LoginValidator
 	public function validateLogin($username, $password)
 	{
 		$response = new LoginResponse();
+		$response->valid = true;
 		
 		return $response;
 	}
@@ -21,7 +22,7 @@ class LoginValidator
 	public function validateRegister($username, $password, $email)
 	{
 		$response = new RegisterResponse();
-		
+		$response->valid = true;
 		
 		return $response;
 	}

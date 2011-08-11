@@ -23,7 +23,7 @@ class LoginSessionManager
 	{
 		if ($this->_currentUser == null)
 		{
-			$this->_currentUser = $this->loadUser();
+			$this->loadUser();
 		}
 		
 		return $this->_currentUser;
@@ -48,17 +48,18 @@ class LoginSessionManager
 	protected function deleteUser()
 	{
 		$newData = array(
-						"logged_in" => false,
-						"userId" => -1
+						"logged_in" => "0",
+						"userId" => "-1"
 		);
 		$this->_session->set_userdata($newData);
 	}
 	
 	protected function saveUser($userId)
 	{
-		$newData = array(
-						"logged_in" => false,
-						"userId" => $user->userId
+		$newData = array
+		(
+			"logged_in" => "1",
+			"userId" => $userId
 		);
 		$this->_session->set_userdata($newData);
 	}
@@ -68,7 +69,7 @@ class LoginSessionManager
 		$this->_currentUser = null;
 		
 		$loggedIn = $this->_session->userdata("logged_in");
-		if ($loggedIn === true)
+		if ($loggedIn == "1")
 		{
 			$userId = $this->_session->userdata("userId");
 			$this->_currentUser = $this->_loginDAO->createUser($userId);

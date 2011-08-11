@@ -97,7 +97,7 @@ class CI_Session {
 		{
 			$this->sess_expiration = (60*60*24*365*2);
 		}
-		
+
 		// Set the cookie name
 		$this->sess_cookie_name = $this->cookie_prefix.$this->sess_cookie_name;
 
@@ -318,7 +318,7 @@ class CI_Session {
 							'ip_address'	=> $this->CI->input->ip_address(),
 							'user_agent'	=> substr($this->CI->input->user_agent(), 0, 50),
 							'last_activity'	=> $this->now
-							);
+		);
 
 
 		// Save the data to the DB if needed
@@ -406,13 +406,13 @@ class CI_Session {
 
 		// Kill the cookie
 		setcookie(
-					$this->sess_cookie_name,
-					addslashes(serialize(array())),
-					($this->now - 31500000),
-					$this->cookie_path,
-					$this->cookie_domain,
-					0
-				);
+		$this->sess_cookie_name,
+		addslashes(serialize(array())),
+		($this->now - 31500000),
+		$this->cookie_path,
+		$this->cookie_domain,
+		0
+		);
 	}
 
 	// --------------------------------------------------------------------
@@ -662,13 +662,13 @@ class CI_Session {
 
 		// Set the cookie
 		setcookie(
-					$this->sess_cookie_name,
-					$cookie_data,
-					$expire,
-					$this->cookie_path,
-					$this->cookie_domain,
-					$this->cookie_secure
-				);
+		$this->sess_cookie_name,
+		$cookie_data,
+		$expire,
+		$this->cookie_path,
+		$this->cookie_domain,
+		$this->cookie_secure
+		);
 	}
 
 	// --------------------------------------------------------------------

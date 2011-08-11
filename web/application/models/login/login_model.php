@@ -9,29 +9,29 @@ include_once("application/models/login/login_session_manager.php");
 class Login_model extends CI_Model
 {
 	
- 	protected $_validator;
- 	protected $_loginSessionManager;
- 	protected $_loginDAO;
-	
+	protected $_validator;
+	protected $_loginSessionManager;
+	protected $_loginDAO;
+
 	public function __construct()
 	{
 		parent::__construct();
-		
+
 		// Load Libraries
 		$this->load->library("form_validation");
 		$this->load->library("session");
 		$this->load->database();
-		
+
 		// Load model components
 		$this->_validator = new LoginValidator($this->form_validation);
 		$this->_loginDAO = new LoginDAO($this->db);
 		$this->_loginSessionManager = new LoginSessionManager($this->session, $this->_loginDAO);
 	}
-	
-	public function loginUser($username, $password, $remember)
+
+	public function loginUser($username, $password, $remember = false)
 	{
 		$response = $this->_validator->validateLogin($username, $password);
-		
+
 		if ($response->valid === true)
 		{
 			$loginValid = $this->processLogin($username, $password, $remember);
@@ -45,15 +45,15 @@ class Login_model extends CI_Model
 				$response->valid = false;
 			}
 		}
-		
+
 		return $response;
 	}
-	
+
 	public function registerUser($username, $password, $email)
 	{
-		$response = $_validator->validateRegister($username, $password, $email);
-		
-		if ($response->valid === true)
+		$response = $this->_validator->validateRegister($username, $password, $email);
+
+		if ($response->valid)
 		{
 			$registerValid = $this->processRegister($username, $password, $email);
 			if ($registerValid === true)
@@ -62,61 +62,64 @@ class Login_model extends CI_Model
 			}
 			else
 			{
-				$response->$registerValid = false;
+				$response->registerValid = false;
 				$response->valid = false;
 			}
 		}
-		
+
 		return $response;
 	}
-	
+
 	public function isLoggedIn()
 	{
 		return $this->_loginSessionManager->hasUser();
 	}
-	
+
 	public function getLoggedInUser()
 	{
 		return $this->_loginSessionManager->getUser();
 	}
-	
+
 	public function logoutUser()
 	{
 		$this->_loginSessionManager->setUser(null);
 	}
-	
+
 	protected function processLogin($username, $password, $remember)
+	{
+		$result = false;
+		$user = $this->_loginDAO->createLoginUser($username, $password);
+
+		if (!$user->hadError)
+		{
+			$this->saveUser($user);
+			$result = true;
+		}
+
+		return $result;
+	}
+	
+	protected function processRegister($username, $password, $email)
+	{
+		$result = false;
+		$user = $this->_loginDAO->createRegisterUser($username, $password, $email);
+
+		if (!$user->hadError)
+		{
+			$this->saveUser($user);
+			$result = true;
+		}
+
+		return $result;
+	}
+	
+	protected function saveUser($user)
 	{
 		if ($this->isLoggedIn())
 		{
 			$this->logoutUser();
 		}
 		
-		$user = $this->_loginDAO->createLoginUser($username, $password);
-		
-		if ($user->hadError === false)
-		{
-			$this->_loginSessionManager->setUser($user);
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	
-	protected function processRegister($username, $password, $email)
-	{
-		$user = $this->_loginDAO->createRegisterUser($username, $password, $email);
-		
-		if ($user->hadError === false)
-		{
-			$this->processLogin($username, $password, false);
-			return true;
-		}
-		else
-		{
-			return false;	
-		}
+		$this->_loginSessionManager->setUser($user);
 	}
 }

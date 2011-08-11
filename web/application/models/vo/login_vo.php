@@ -6,6 +6,9 @@ class UserVO
 	public $userId;
 	public $username;
 	public $email;
+	public $usergroup;
+	public $title;
+	public $departmentId;
 }
 
 class LoginResponse
