@@ -1,8 +1,20 @@
-
-<span class="page-script">
+<span class="page-script" >
 <!--
-	// Insert your javascript here.
-	alert("Hello World!!");
+	// hide the home container
+	VGDeskHome.hideHeader();
+	
+	function onLoad(success)
+	{
+		if (!success)
+		{
+			alert("Script Failed to Load!!!");
+		}
+	}
+	
+	IncludeManager.includeScripts([
+		"js/login.js"
+	], onLoad);
+	
 -->
 </span>
 

@@ -20,31 +20,21 @@
 		<!-- Contains all of the Page Loading Logic -->
 		<script type="text/javascript" src="js/navigation.js"></script>
 		
-		<script type="text/javascript">
-
-			function onPageLoaded(e)
-			{
-				var dumpElementId = "page-body";
-				var startPage = "overview";
-				
-				Navigation.setDumpElementId(dumpElementId);
-				Navigation.navigateTo(startPage);
-			}
-			
-		</script>
+		<!-- Home Page Script -->
+		<script type="text/javascript" src="js/vgdesk_home.js"></script>
 		
 	</head>
 </head>
-<body onload="onPageLoaded(event)">
+<body onload="VGDeskHome.onPageLoaded(event)">
 	<div id="header">
 		<img id="logo" src="assets/images/logo.png"/>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('overview')">Overview</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('files')">Files</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('planner')">Planner</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('writer')">Writer</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('forum')">Forum</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('chat')">Chat</a></p>
-		<p class="header-button"><a href="javascript:Navigation.navigateTo('tools')">Tools</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('overview')">Overview</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('files')">Files</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('planner')">Planner</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('writer')">Writer</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('forum')">Forum</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('chat')">Chat</a></p>
+		<p class="header-button"><a href="javascript:VGDeskHome.navigate('tools')">Tools</a></p>
 	</div>
 	
 	<div id="page-body">

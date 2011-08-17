@@ -12,11 +12,21 @@ color: #FFF;
 	background: #EEE url('../images/pagebody-bg.gif');
 	height: auto;
 	width:100%;
+	
+}
+
+.page-body-header
+{
 	position: fixed;
 	top: 30px;
 	bottom: 30px;
-	bottom: 0;
-	
+}
+
+.page-body-no-header
+{
+	position: fixed;
+	top: 0px;
+	bottom: 0px;
 }
 
 #header
