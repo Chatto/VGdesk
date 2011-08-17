@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 	<title>VGdesk</title>
-	<head>
 		<link rel="stylesheet" type="text/css" href="assets/css/main.css">
 		
 		<!-- The Following Script Contains all of the Page Loading Logic -->
@@ -24,7 +23,6 @@
 		</script>
 		
 	</head>
-</head>
 <body onload="onPageLoaded(event)">
 	<div id="header">
 		<img id="logo" src="assets/images/logo.png"/>

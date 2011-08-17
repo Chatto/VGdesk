@@ -1,6 +1,9 @@
 @import url('reset.css');
 @import url(http://fonts.googleapis.com/css?family=Kameron:700);
+@import url(http://fonts.googleapis.com/css?family=Actor);
 
+
+/* Universal and home page view */
 
 .p
 {
@@ -15,7 +18,6 @@ color: #FFF;
 	position: fixed;
 	top: 30px;
 	bottom: 30px;
-	bottom: 0;
 	
 }
 
@@ -71,4 +73,143 @@ a:hover
 	display: inline;
 	width: auto;
 	height: auto;
+}
+
+.section
+{
+	font-family: Verdana;
+	font-size:12pt;
+	font-weight: bold;
+	color: #333333;
+	padding: 10px 10px;
+	background: -moz-linear-gradient(
+		top,
+		rgba(255,255,255,0.6) 0%,
+		rgba(200,200,200,0.6));
+	background-image: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(255,255,255,0.6)),
+		to(rgba(200,200,200,0.6)));
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	-moz-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	-webkit-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	border: 3px solid rgba(70,70,70,0.5);
+	margin: 3px;
+	text-shadow:1px 1px 2px rgba(255,255,255,0.5);
+}
+
+
+/* Overview */
+.vertical-column
+{
+	width:310px;
+	height:100%;
+	position:relative;
+	float:left;
+	display:block;
+}
+
+.section-header
+{
+	font-family: Verdana;
+	font-size:14pt;
+	font-weight:bold;
+	color: #666666;
+	padding: 10px 10px;
+	background: -moz-linear-gradient(
+		top,
+		rgba(255,255,255,0.6) 0%,
+		rgba(200,200,200,0.6));
+	background-image: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(255,255,255,0.6)),
+		to(rgba(200,200,200,0.6)));
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	-moz-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	-webkit-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	border: 3px solid rgba(70,70,70,0.5);
+	margin: 3px;
+	
+	text-shadow:
+		1px 1px 2px rgba(255,255,255,0.5);
+}
+
+p.log-entry
+{
+	font-family: Verdana;
+	font-size:14pt;
+	font-weight:bold;
+	color: #666666;
+	padding: 10px 10px;
+	background: -moz-linear-gradient(
+		top,
+		rgba(255,255,255,0.6) 0%,
+		rgba(200,200,200,0.6));
+	background-image: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(255,255,255,0.6)),
+		to(rgba(200,200,200,0.6)));
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	-moz-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	-webkit-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	border: 3px solid rgba(70,70,70,0.5);
+	margin: 3px;
+	
+	text-shadow:
+		1px 1px 2px rgba(255,255,255,0.5);
+	position:relative;
+	float:top
+	width:100%;
+}
+
+/* Login Page CSS */
+
+.section#login-box
+{
+	width:400px;
+	height:300px;
+	position:absolute;
+	left:0px;
+	right:0px;
+	top:50%;
+	bottom:50%;
+	margin:auto;
+}
+
+#center-floater
+{
+		width:100%;
+		height:100%;
+}
+
+#login-body
+{
+	background: #EEE url('../images/pagebody-bg.gif');
+	height:100%;
+	width:100%;
+	text-align:center;
+	position:fixed;
+}
+
+#login-forms
+{
+	font-size: 12pt;
+	text-align:left;
+	width:370px;
+	clear:both;
+	position:absolute;
+}
+
+#login-title
+{
+	font-size: 24pt;
 }
