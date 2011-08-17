@@ -1,96 +1,54 @@
+var Navigation = {};
+
 // The page to dump the results of navigateTo(pageId)
-var dumpElementId = null;
+Navigation.dumpElementId = null;
 
-var navigationUrlData = [];
-navigationUrlData['overview'] = "index.php/overview/overview/";
-navigationUrlData['files'] = "index.php/files/files/";
-navigationUrlData['planner'] = "index.php/planner/planner/";
-navigationUrlData['writer'] = "index.php/writer/writer/";
-navigationUrlData['forum'] = "index.php/forum/forum/";
-navigationUrlData['chat'] = "index.php/chat/chat/";
-navigationUrlData['tools'] = "index.php/tools/tools/";
+Navigation.navigationUrlData = new Array();
+Navigation.navigationUrlData['overview'] = "index.php/overview/overview_page/";
+Navigation.navigationUrlData['files'] = "index.php/files/files_page/";
+Navigation.navigationUrlData['planner'] = "index.php/planner/planner_page/";
+Navigation.navigationUrlData['writer'] = "index.php/writer/writer_page/";
+Navigation.navigationUrlData['forum'] = "index.php/forum/forum_page/";
+Navigation.navigationUrlData['chat'] = "index.php/chat/chat_page/";
+Navigation.navigationUrlData['tools'] = "index.php/tools/tools_page/";
 
-var AjaxData = 
+Navigation.setDumpElementId = function(value)
 {
-	xmlHttpRequest:null,
-	isLoading:false,
-	currentDumpElement:null
+	Navigation.dumpElementId = value;
 };
 
-function setDumpElementId(value)
+// Call Navigation method to navigate to the page with the given Id
+Navigation.navigateTo = function(pageId)
 {
-	dumpElementId = value;
-}
-
-// Call this method to navigate to the page with the given Id
-function navigateTo(pageId)
-{
-	if (!dumpElementId)
+	if (!Navigation.dumpElementId)
 	{
 		alert("dumpElementId is null. call setDumpElementId() before navigateTo()");
 	}
 	
-	var pageUrl = navigationUrlData[pageId];
+	var pageUrl = Navigation.navigationUrlData[pageId];
 	if (pageUrl)
 	{
-		navigateToPage(pageUrl, dumpElementId);		
+		var dumpElement = document.getElementById(Navigation.dumpElementId);
+		RequestManager.getRequest(pageUrl, Navigation.dumpText, {dumpElement:dumpElement});
 	}
-}
+};
 
-// Use AJAX to navigate to a page, 
-// and dump the results into the dumpElement
-function navigateToPage(pageUrl, dumpElementId)
+Navigation.dumpText = function(text, userData)
 {
-	var dumpElement = document.getElementById(dumpElementId);
+	var dumpElement = userData.dumpElement;
+	if (text == "")
+	{
+		dumpElement.innerHTML = "Page Not Found";
+	}
+	else
+	{
+		dumpElement.innerHTML = text;
+	}
 	
-	if (!AjaxData.isLoading
-		&& dumpElement != null)
+	// execute the scripts
+	var scripts = getElementsByClassName("page-script", "span");
+	for (var i=0; i<scripts.length; i++)
 	{
-		AjaxData.isLoading = true;
-		AjaxData.currentDumpElement = dumpElement;
-		
-		loadXmlHttpRequest();
-		var request = AjaxData.xmlHttpRequest;
-			
-		request.open('GET', pageUrl, true);
-		request.onreadystatechange = onNavigateToPageComplete;
-		request.send(null);
+		eval(scripts[i].innerHTML);
 	}
-}
-
-// When the page is done loading, dump the response text into the dump element
-function onNavigateToPageComplete(e)
-{
-	var request = AjaxData.xmlHttpRequest;
-	
-	if (request.readyState == 4)
-	{
-		if (request.status == 200)
-		{
-			var text = request.responseText;
-			AjaxData.currentDumpElement.innerHTML = text;
-		}
-		else
-		{
-			AjaxData.currentDumpElement.innerHTML = "Page Not Found";
-		}
-		
-		AjaxData.isLoading = false;
-	}
-}
-
-// Initialize the XmlHttpRequest
-function loadXmlHttpRequest()
-{
-	if (AjaxData.xmlHttpRequest == null)
-	{
-		if (window.XMLHttpRequest)
-		{
-			AjaxData.xmlHttpRequest = new XMLHttpRequest();
-		}
-		else
-		{
-			AjaxData.xmlHttpRequest = new ActiveXObject("Microsoft.XMLHTTP");
-		}
-	}
-}
+};

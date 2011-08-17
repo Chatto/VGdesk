@@ -1,9 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
 
-<body>Login Page Here</body>
-
-<br><br>
+<span class="page-script">
+<!--
+	// Insert your javascript here.
+	alert("Hello World!!");
+-->
+</span>
 
 <?php
 	if ($user != null)
@@ -15,5 +16,3 @@
 		echo "Not Logged In.";
 	}
 ?>
-
-</html>
