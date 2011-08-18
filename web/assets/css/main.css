@@ -12,7 +12,7 @@ color: #FFF;
 
 #page-body
 {
-	background: #EEE url('../images/pagebody-bg.gif');
+	background: #EEE url('../images/pagebody-bg.svg');
 	height: auto;
 	width:100%;
 	
@@ -23,6 +23,14 @@ color: #FFF;
 	position: fixed;
 	top: 30px;
 	bottom: 30px;
+}
+img#logo
+{
+	cursor:crosshair; 
+	-moz-box-shadow:1px 1px 2px rgba(255,255,255,0.5);
+    -webkit-box-shadow:1px 1px 2px rgba(255,255,255,0.5);
+	box-shadow:1px 1px 2px rgba(255,255,255,0.5);
+	height:30px;
 }
 
 .page-body-no-header
@@ -199,7 +207,7 @@ p.log-entry
 
 #login-body
 {
-	background: #EEE url('../images/pagebody-bg.gif');
+	/*background: #EEE url('../images/pagebody-bg.gif');*/
 	height:100%;
 	width:100%;
 	text-align:center;
