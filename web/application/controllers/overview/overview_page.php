@@ -6,6 +6,6 @@ class Overview_page extends PageController
 {
 	public function index()
 	{
-		echo "Overview Page";
+		$this->load->view("pages/overview/overview_view");
 	}
 }

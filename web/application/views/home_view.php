@@ -2,28 +2,26 @@
 <html lang="en">
 <head>
 	<title>VGdesk</title>
-	<head>
-		<link rel="stylesheet" type="text/css" href="assets/css/main.css">
-		
-		<!-- Jquery Library -->
-		<script type="text/javascript" src="js/jquery.js"></script>
-		
-		<!-- Let Javascript be loaded automatically -->
-		<script type="text/javascript" src="js/include_manager"></script>
-		
-		<!-- Contains some helpers for manager the DOM -->
-		<script type="text/javascript" src="js/dom_helper.js"></script>
-		
-		<!-- Contains some helper functions for http request -->
-		<script type="text/javascript" src="js/request_manager.js"></script>
-		
-		<!-- Contains all of the Page Loading Logic -->
-		<script type="text/javascript" src="js/navigation.js"></script>
-		
-		<!-- Home Page Script -->
-		<script type="text/javascript" src="js/vgdesk_home.js"></script>
-		
-	</head>
+	<link rel="stylesheet" type="text/css" href="assets/css/main.css">
+	
+	<!-- Jquery Library -->
+	<script type="text/javascript" src="js/jquery.js"></script>
+	
+	<!-- Let Javascript be loaded automatically -->
+	<script type="text/javascript" src="js/include_manager"></script>
+	
+	<!-- Contains some helpers for manager the DOM -->
+	<script type="text/javascript" src="js/dom_helper.js"></script>
+	
+	<!-- Contains some helper functions for http request -->
+	<script type="text/javascript" src="js/request_manager.js"></script>
+	
+	<!-- Contains all of the Page Loading Logic -->
+	<script type="text/javascript" src="js/navigation.js"></script>
+	
+	<!-- Home Page Script -->
+	<script type="text/javascript" src="js/vgdesk_home.js"></script>
+	
 </head>
 <body onload="VGDeskHome.onPageLoaded(event)">
 	<div id="header">
