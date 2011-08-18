@@ -31,6 +31,6 @@ Navigation.dumpText = function(text, userData)
 	var scripts = getElementsByClassName("page-script", "span");
 	for (var i=0; i<scripts.length; i++)
 	{
-		eval.call(window, scripts[i].innerHTML);
+		globalEval(scripts[i].innerHTML);
 	}
 };

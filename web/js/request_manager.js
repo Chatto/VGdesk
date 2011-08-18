@@ -101,7 +101,8 @@ RequestManager.doNextRequest = function()
 
 RequestManager.parseJSON = function(text, callback)
 {
-	callback(eval.call(window, "(" + text + ")"));
+	globalEval("var requestManagerParseJSONResponse = (" + text + ")");
+	callback(requestManagerParseJSONResponse);
 };
 
 RequestManager.loadXmlHttpRequest = function()

@@ -8,7 +8,7 @@
 	<script type="text/javascript" src="js/jquery.js"></script>
 	
 	<!-- Let Javascript be loaded automatically -->
-	<script type="text/javascript" src="js/include_manager"></script>
+	<script type="text/javascript" src="js/include_manager.js"></script>
 	
 	<!-- Contains some helpers for manager the DOM -->
 	<script type="text/javascript" src="js/dom_helper.js"></script>

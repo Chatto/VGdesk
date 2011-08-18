@@ -1,3 +1,25 @@
+// Global Eval fixes cross browser Eval Problems
+var globalEval = function globalEval(src) {
+    if (window.execScript) {
+        window.execScript(src);
+        return;
+    }
+    var fn = function() {
+        window.eval.call(window,src);
+    };
+    fn();
+};
+
+// Fix Problems with console.log
+if (!window.console)
+	window.console = {};
+
+if (!window.console.log)
+	window.console.log = function() {};
+	
+if (!window.console.debug)
+	window.console.debug = function() {};
+
 /*
 	Developed by Robert Nyman, http://www.robertnyman.com
 	Code/licensing: http://code.google.com/p/getelementsbyclassname/
