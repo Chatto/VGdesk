@@ -25,7 +25,7 @@
 </head>
 <body onload="VGDeskHome.onPageLoaded(event)">
 	<div id="header">
-		<img id="logo" src="assets/images/logo.png"/>
+		<img id="logo" src="assets/images/logo.svg"/>
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('overview')">Overview</a></p>
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('files')">Files</a></p>
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('planner')">Planner</a></p>
