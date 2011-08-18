@@ -32,6 +32,8 @@ VGDeskHome.dumpPageText = function(pageId, text)
 
 VGDeskHome.hideHeader = function()
 {
+	console.log("Hide Header");
+	
 	document.getElementById("header").style.display = "none";
 	document.getElementById("footer").style.display = "none";
 
@@ -40,6 +42,8 @@ VGDeskHome.hideHeader = function()
 
 VGDeskHome.showHeader = function()
 {
+	console.log("Show Header");
+	
 	document.getElementById("header").style.display = "block";
 	document.getElementById("footer").style.display = "block";
 

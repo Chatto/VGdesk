@@ -17,8 +17,6 @@
 		var username = document.getElementById("username-input").value;
 		var password = document.getElementById("password-input").value;
 		
-		alert(username);
-		
 		Login.login(username, password, LoginView.onLoginComplete);
 	};
 	
@@ -26,13 +24,13 @@
 	{
 		if (response.valid)
 		{
-			alert("response is valid");
+			alert("Login Successful");
 			
 			VGDeskHome.navigate("overview");
 		}
 		else
 		{
-			alert("response is not valid");
+			alert("Login Unsuccessful");
 		}
 	};
 

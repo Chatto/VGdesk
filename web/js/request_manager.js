@@ -101,7 +101,7 @@ RequestManager.doNextRequest = function()
 
 RequestManager.parseJSON = function(text, callback)
 {
-	callback(eval("(" + text + ")"));
+	callback(eval.call(window, "(" + text + ")"));
 };
 
 RequestManager.loadXmlHttpRequest = function()
