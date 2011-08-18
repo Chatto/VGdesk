@@ -1,20 +1,44 @@
 <span class="page-script" >
 <!--
-	// hide the home container
 	VGDeskHome.hideHeader();
 	
-	function onLoad(success)
+	var LoginView = {};
+	
+	LoginView.onLoad = function(success)
 	{
 		if (!success)
 		{
 			alert("Script Failed to Load!!!");
 		}
-	}
+	};
 	
+	LoginView.onLogin = function()
+	{
+		var username = document.getElementById("username-input").value;
+		var password = document.getElementById("password-input").value;
+		
+		alert(username);
+		
+		Login.login(username, password, LoginView.onLoginComplete);
+	};
+	
+	LoginView.onLoginComplete = function(response)
+	{
+		if (response.valid)
+		{
+			alert("response is valid");
+			
+			VGDeskHome.navigate("overview");
+		}
+		else
+		{
+			alert("response is not valid");
+		}
+	};
+
 	IncludeManager.includeScripts([
-		"js/login.js"
-	], onLoad);
-	
+		"js/pages/login/login.js"
+	], LoginView.onLoad);
 -->
 </span>
 
@@ -23,12 +47,12 @@
 		<div class="section" id="login-box">
 			<div id="login-title">Login to $project</div>
 			<div id="login-forms">
-				<form action="#" method="post">
+				<form action="javascript:LoginView.onLogin()" method="post">
 					<fieldset>
 						<label for="username">Username</label>
-							<input type="text" name="username" /><br>
+							<input id="username-input" type="text" name="username" /><br>
 						<label for="password">Password</label>
-							<input type="password" name="password" /><br>
+							<input id="password-input" type="password" name="password" /><br>
 						
 						<input type="submit" value="Login" /><input type="button" value="Register" />
 						</fieldset>

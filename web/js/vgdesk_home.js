@@ -11,6 +11,8 @@ VGDeskHome.onPageLoaded = function(e)
 VGDeskHome.navigate = function(pageId)
 {
 	Navigation.navigateTo(pageId, VGDeskHome.dumpPageText);
+	console.log(pageId);
+	console.log(VGDeskHome.dumpPageText);
 };
 
 VGDeskHome.dumpPageText = function(pageId, text)

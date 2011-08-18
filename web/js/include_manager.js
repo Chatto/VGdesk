@@ -5,6 +5,7 @@ IncludeManager.loading = false;
 IncludeManager.callback = null;
 IncludeManager.timeout = 1000;
 IncludeManager.timer = null;
+IncludeManager.includedScripts = new Array();
 
 IncludeManager.includeScripts = function(scripts, callback)
 {
@@ -16,6 +17,13 @@ IncludeManager.includeScripts = function(scripts, callback)
 	for (var i=0; i<scripts.length; i++)
 	{
 		var script = scripts[i];
+		
+		if (IncludeManager.includedScripts[script])
+		{
+			continue;
+		}
+		IncludeManager.includedScripts[script] = true;
+		
 		var scriptElement = document.createElement('script');
 		scriptElement.setAttribute('src', script);
 		scriptElement.setAttribute('type','text/javascript');
