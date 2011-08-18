@@ -1,5 +1,5 @@
 @import url('reset.css');
-@import url(http://fonts.googleapis.com/css?family=Kameron:700);
+@import url(http://fonts.googleapis.com/css?family=Aldrich);
 @import url(http://fonts.googleapis.com/css?family=Actor);
 
 
@@ -62,16 +62,16 @@ a
 a:hover
 {
 	color: #febf01;
-	text-shadow: 1px 1px 0px #ff7400;
+	text-shadow: 1px 1px 2px rgba(255,116,0,0.5);
 }
 
 .header-button
 {
 	display: inline;
-	color: #FFF;
-	font-family: Kameron;
-	font-size: 18pt;
-	text-shadow: 1px 1px 0px #CCC;
+	color: #333;
+	font-family: 'Aldrich', sans-serif;
+	font-size: 16pt;
+	text-shadow:1px 1px 2px rgba(255,255,255,0.5);
 	font-weight: bold;
 	font-variant: smallcaps;
 	margin-left: 30px;
@@ -191,16 +191,11 @@ p.log-entry
 	position:absolute;
 	left:0px;
 	right:0px;
-	top:50%;
-	bottom:50%;
+	top:0px;
+	bottom:0px;
 	margin:auto;
 }
 
-#center-floater
-{
-		width:100%;
-		height:100%;
-}
 
 #login-body
 {
@@ -222,5 +217,6 @@ p.log-entry
 
 #login-title
 {
-	font-size: 24pt;
+	font-size: 18pt;
+	text-align:left;
 }

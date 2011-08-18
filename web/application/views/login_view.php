@@ -43,7 +43,6 @@
 </span>
 
 <div id="login-body">
-	<div id="center-floater">
 		<div class="section" id="login-box">
 			<div id="login-title">Login to $project</div>
 			<div id="login-forms">
@@ -70,5 +69,4 @@
 			}
 		?>
 		</div>
-	</div>
 </div>
