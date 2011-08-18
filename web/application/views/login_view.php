@@ -1,5 +1,4 @@
 <span class="page-script" >
-<!--
 	VGDeskHome.hideHeader();
 	
 	var LoginView = {};
@@ -8,7 +7,7 @@
 	{
 		if (!success)
 		{
-			alert("Script Failed to Load!!!");
+			console.debug("Script Failed to Load!!!");
 		}
 	};
 	
@@ -37,7 +36,7 @@
 	IncludeManager.includeScripts([
 		"js/pages/login/login.js"
 	], LoginView.onLoad);
--->
+
 </span>
 
 <div id="login-body">

@@ -10,6 +10,11 @@
 color: #FFF;
 }
 
+.page-script
+{
+	display:none;
+}
+
 #page-body
 {
 	background: #EEE url('../images/pagebody-bg.svg');
