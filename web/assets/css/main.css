@@ -1,7 +1,6 @@
 @import url('reset.css');
 @import url(http://fonts.googleapis.com/css?family=Aldrich);
-@import url(http://fonts.googleapis.com/css?family=Actor);
-
+@import url(http://fonts.googleapis.com/css?family=Lato);
 
 /* Universal and home page view */
 
@@ -14,12 +13,28 @@ color: #FFF;
 {
 	display:none;
 }
+body
+{
+	background: #EEE url('../images/wallpaper-test.jpg');
+	height:100%;
+	width:100%;
+}
+.grayscale
+{
+	width:100%;
+	height:100%;
+	background: rgba(255,255,255,0.2);
+	position:absolute;
+}
 
 #page-body
 {
-	background: #EEE url('../images/pagebody-bg.svg');
-	height: auto;
-	width:100%;
+	height:auto;
+	width:auto;
+	top:60px;
+	bottom:60px;
+	position:absolute;
+	padding:10px;
 	
 }
 
@@ -41,26 +56,56 @@ img#logo
 	top: 0px;
 	bottom: 0px;
 }
-
+.avatar-border
+{
+	border:3px rbga(0,0,0,0.4);
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	-moz-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	-webkit-box-shadow:
+		0px 0px 4px rgba(0,0,0,0.5);
+	margin:10px;
+	display:inline;
+	position:absolute;
+	top:0px;
+}
 #header
 {
-	background: #CCC url('../images/header-bg.gif');
+	/*background: #CCC url('../images/header-bg.gif');*/
+	/*
+	background: -moz-linear-gradient(
+		top,
+		rgba(0,0,0,0.8) 0%,
+		rgba(255,255,255,0.7));
+	background: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(100,100,100,1)),
+		to(rgba(0,0,0,1)));
+	*/
+	background: rgba(0,0,0,0.4);
 	background-repeat: repeat-x;
 	width: 100%;
-	height: 30px;
+	height: 60px;
 	position: relative;
+	vertical-align:center;
+	/* border-bottom:1px solid #666; */
 }
 
 #footer
 {
+	/*
 	background: #CCC url('../images/footer-bg.gif');
 	background-repeat: repeat-x;
+	*/
+	background: rgba(0,0,0,0.4);
 	width: 100%;
-	height: 30px;
+	height: 60px;
 	position: absolute;
 	top: auto;
 	bottom: 0;
 	overflow: hidden;
+	display:block;
 }
 
 a
@@ -78,15 +123,15 @@ a:hover
 .header-button
 {
 	display: inline;
-	color: #333;
-	font-family: 'Aldrich', sans-serif;
+	color: #FFF;
+	font-family: 'Lato', sans-serif;
 	font-size: 16pt;
-	text-shadow:1px 1px 2px rgba(255,255,255,0.5);
+	text-shadow:0px 0px 4px rgba(0,0,0,1);
 	font-weight: bold;
 	font-variant: smallcaps;
-	margin-left: 30px;
+	margin: 20px;
 	position: relative;
-	bottom: 8px;
+	line-height:60px;
 }
 
 #logo
@@ -98,28 +143,30 @@ a:hover
 
 .section
 {
-	font-family: Verdana;
-	font-size:12pt;
-	font-weight: bold;
-	color: #333333;
-	padding: 10px 10px;
+	font-family: 'Lato', sans-serif;
+	font-size:11pt;
+	color: #666;
+	/*
 	background: -moz-linear-gradient(
 		top,
 		rgba(255,255,255,0.6) 0%,
-		rgba(200,200,200,0.6));
-	background-image: -webkit-gradient(
+		rgba(255,255,255,0.6));
+	background: -webkit-gradient(
 		linear, left top, left bottom, 
-		from(rgba(255,255,255,0.6)),
-		to(rgba(200,200,200,0.6)));
-	-moz-border-radius: 6px;
-	-webkit-border-radius: 6px;
+		from(rgba(255,255,255,0.4)),
+		to(rgba(255,255,255,0.4)));
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#ffffff99, endColorstr=#C8C8C899); /* IE7 and IE8 fix for gradient backgrounds, but at least it has an alpha channel */
+	background: rgba(0,0,0,0.4);
+		
+		/*
 	-moz-box-shadow:
 		0px 0px 4px rgba(0,0,0,0.5);
 	-webkit-box-shadow:
 		0px 0px 4px rgba(0,0,0,0.5);
-	border: 3px solid rgba(70,70,70,0.5);
-	margin: 3px;
-	text-shadow:1px 1px 2px rgba(255,255,255,0.5);
+		*/
+	/* border: 1px solid rgba(0,0,0,0.6); */
+
+	text-shadow:1px 1px 0px rgba(255,255,255,0.4);
 }
 
 
@@ -127,69 +174,171 @@ a:hover
 .vertical-column
 {
 	width:310px;
-	height:100%;
-	position:relative;
+	height:auto;
 	float:left;
-	display:block;
+	margin-right:10px;
+	/*overflow:hidden;*/
+}
+
+.column-title
+{
+	position:absolute;
+	top:0px;
+	bottom:0px;
+	margin:auto;
+	height:30px;
 }
 
 .section-header
 {
-	font-family: Verdana;
-	font-size:14pt;
+	font-family: 'Lato', sans-serif;
+	font-size:12pt;
 	font-weight:bold;
-	color: #666666;
-	padding: 10px 10px;
+	color: #FFF;
+	/*
 	background: -moz-linear-gradient(
 		top,
-		rgba(255,255,255,0.6) 0%,
-		rgba(200,200,200,0.6));
-	background-image: -webkit-gradient(
+		rgba(200,200,200,0.6) 0%,
+		rgba(100,100,100,0.6));
+	background: -webkit-gradient(
 		linear, left top, left bottom, 
-		from(rgba(255,255,255,0.6)),
-		to(rgba(200,200,200,0.6)));
-	-moz-border-radius: 6px;
-	-webkit-border-radius: 6px;
-	-moz-box-shadow:
-		0px 0px 4px rgba(0,0,0,0.5);
-	-webkit-box-shadow:
-		0px 0px 4px rgba(0,0,0,0.5);
-	border: 3px solid rgba(70,70,70,0.5);
-	margin: 3px;
-	
-	text-shadow:
-		1px 1px 2px rgba(255,255,255,0.5);
+		from(rgba(200,200,200,0.6)),
+		to(rgba(100,100,100,0.6)));
+	*/
+	background:rgba(0,0,0,0.5);
+	/*	
+	-moz-border-top-right-radius: 3px;
+	-webkit-border-top-right-radius: 3px;
+	-moz-border-top-left-radius: 3px;
+	-webkit-border-top-left-radius: 3px;
+	*/
+	margin: 0px;
+	text-shadow:1px 1px 0px rgba(0,0,0,0.4);
+	text-align:center;
+	height:30px;
+	border-bottom:1px solid rgba(255,255,255,0);
+	width:100%;
+	display:block;
+	position:relative;
+	line-height:30px;
+	text-align:center;
+
+}
+.section-filter
+{
+	font-family: 'Lato', sans-serif;
+	font-weight:normal;
+	font-size:10pt;
+	color:#FFF;
+	width:100%;
+	height:30px;
+	background:rgba(0,0,0,0.4);
+	position:relative;
+	border-bottom:1px solid rgba(255,255,255,0.6);
+	line-height:30px;
 }
 
-p.log-entry
+.section-header>span
 {
-	font-family: Verdana;
-	font-size:14pt;
-	font-weight:bold;
-	color: #666666;
-	padding: 10px 10px;
+	vertical-align:middle
+	display:inline-block;
+}
+
+div.log-entry
+{
+	font-family: 'Lato', sans-serif;
+	font-size:10pt;
+	color: #333;
+	padding:0px;
+	margin:0px;
+	/*
 	background: -moz-linear-gradient(
 		top,
-		rgba(255,255,255,0.6) 0%,
-		rgba(200,200,200,0.6));
-	background-image: -webkit-gradient(
+		rgba(255,255,255,0.9) 0%,
+		rgba(200,200,200,0.9));
+	background: -webkit-gradient(
 		linear, left top, left bottom, 
-		from(rgba(255,255,255,0.6)),
-		to(rgba(200,200,200,0.6)));
-	-moz-border-radius: 6px;
-	-webkit-border-radius: 6px;
-	-moz-box-shadow:
-		0px 0px 4px rgba(0,0,0,0.5);
-	-webkit-box-shadow:
-		0px 0px 4px rgba(0,0,0,0.5);
-	border: 3px solid rgba(70,70,70,0.5);
-	margin: 3px;
-	
-	text-shadow:
-		1px 1px 2px rgba(255,255,255,0.5);
-	position:relative;
-	float:top
+		from(rgba(255,255,255,1)),
+		to(rgba(200,200,200,1)));
+	*/
+	text-shadow:1px 1px 0px rgba(255,255,255,0.4);
 	width:100%;
+	height:auto;
+	min-height:70px;
+	border-bottom:1px solid rgba(0,0,0,0.4);
+	position:relative;
+}
+
+span.log-title
+{
+	font-size: 10pt;
+	font-weight:bold;
+}
+
+div.log-content
+{
+	padding:10px;
+	margin-left:70px;
+	position:relative;
+	display:block;
+	clear:both;
+	min-height:50px;
+	
+}
+
+div.log-data
+{
+	font-size:10px;
+	text-align:right;
+	position:absolute;
+	bottom:10px;
+	right:10px;
+	
+}
+
+div.color-orange
+{
+	background: -moz-linear-gradient(
+		top,
+		rgba(255,100,0,0.8) 0%,
+		rgba(225,70,0,0.8));
+	background: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(255,100,0,0.8)),
+		to(rgba(225,70,0,0.8)));
+}
+div.color-teal
+{
+	background: -moz-linear-gradient(
+		top,
+		rgba(51,255,255,0.8) 0%,
+		rgba(21,225,225,0.8));
+	background: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(51,255,255,0.8)),
+		to(rgba(21,225,225,0.8)));
+}
+div.color-green
+{
+	background: -moz-linear-gradient(
+		top,
+		rgba(0,204,51,0.8) 0%,
+		rgba(0,174,21,0.8));
+	background: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(0,204,51,0.8)),
+		to(rgba(0,174,21,0.8)));
+}
+div.color-purple
+{
+	background: -moz-linear-gradient(
+		top,
+		rgba(153,102,204,0.8) 0%,
+		rgba(123,72,174,0.8));
+	background: -webkit-gradient(
+		linear, left top, left bottom, 
+		from(rgba(153,102,204,0.8)),
+		to(rgba(123,72,174,0.8)));
 }
 
 /* Login Page CSS */
