@@ -54,6 +54,8 @@ img#logo
 .page-body-no-header
 {
 	position: fixed;
+	width:100%
+	height:auto;
 	top: 0px;
 	bottom: 0px;
 }
@@ -377,12 +379,10 @@ div.color-black
 .section#login-box
 {
 	width:400px;
-	height:300px;
+	height:auto;
 	position:absolute;
 	left:0px;
 	right:0px;
-	top:0px;
-	bottom:0px;
 	margin:auto;
 }
 
@@ -398,15 +398,60 @@ div.color-black
 
 #login-forms
 {
-	font-size: 12pt;
+	font-size: 10pt;
 	text-align:left;
-	width:370px;
-	clear:both;
-	position:absolute;
+	color:#FFF;
+	display:block;
+	padding:10px;
 }
 
 #login-title
 {
 	font-size: 18pt;
 	text-align:left;
+	color:#FFF;
+}
+
+input
+{
+	border:1px solid rgba(0,0,0,0.4);
+	background: rgba(0,0,0,0.4);
+	-moz-border-radius:5px;
+	-webkit-border-radius:5px;
+	text-shadow:none;
+	color:#FFF;
+}
+input[type="submit"], input[type="button"]
+{
+	-moz-border-radius:5px;
+	-webkit-border-radius:5px;
+	padding:5px;
+	margin:10px;
+	float:right;
+	display:block;
+}
+#username-input, #password-input
+{
+	display:block;
+	width:236px;
+	height:20px;
+	margin:10px;
+}
+#username-input
+{
+	
+}
+
+label
+{
+	color:rgba(255,255,255,1);
+	text-shadow:1px 1px 1px rgba(0,0,0,0.4);
+}
+
+img.project-image
+{
+	width:100px;
+	height:100px;
+	display:block;
+	float:left;
 }
