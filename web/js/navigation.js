@@ -1,6 +1,8 @@
 var Navigation = {};
 
 Navigation.navigationUrlData = new Array();
+Navigation.navigationUrlData['login'] = "index.php/login/login_page/";
+Navigation.navigationUrlData['register'] = "index.php/login/register_page/"
 Navigation.navigationUrlData['overview'] = "index.php/overview/overview_page/";
 Navigation.navigationUrlData['files'] = "index.php/files/files_page/";
 Navigation.navigationUrlData['planner'] = "index.php/planner/planner_page/";
@@ -13,6 +15,7 @@ Navigation.navigationUrlData['tools'] = "index.php/tools/tools_page/";
 Navigation.navigateTo = function(pageId, callback)
 {
 	var pageUrl = Navigation.navigationUrlData[pageId];
+
 	if (pageUrl)
 	{
 		RequestManager.getRequest(pageUrl, Navigation.dumpText, {pageId:pageId, callback:callback});

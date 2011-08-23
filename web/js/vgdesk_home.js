@@ -1,6 +1,6 @@
 var VGDeskHome = {};
 
-VGDeskHome.startPage = "overview";
+VGDeskHome.startPage = vgdesk_default_page;
 
 VGDeskHome.onPageLoaded = function(e)
 {

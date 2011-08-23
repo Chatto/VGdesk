@@ -20,6 +20,9 @@
 	<script type="text/javascript" src="js/navigation.js"></script>
 	
 	<!-- Home Page Script -->
+        <script type="text/javascript">
+             var vgdesk_default_page = '<?php echo("$default_page") ?>';
+        </script>
 	<script type="text/javascript" src="js/vgdesk_home.js"></script>
 	
 </head>
