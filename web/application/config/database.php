@@ -38,13 +38,21 @@
 | the active record class
 */
 
+// You can customize the path of this file.
+// The following file should set three variables:
+// $db_config_hostname: the hostname of the database
+// $db_config_username: the username
+// $db_config_password: the password
+// This file should not be stored in Version Control
+require_once("db_config.php");
+
 $active_group = 'default';
 $active_record = TRUE;
 
-$db['default']['hostname'] = 'localhost';
-$db['default']['username'] = 'root';
-$db['default']['password'] = '';
-$db['default']['database'] = 'vgdesk_local';
+$db['default']['hostname'] = $db_config_hostname;
+$db['default']['username'] = $db_config_username;
+$db['default']['password'] = $db_config_password;
+$db['default']['database'] = 'vgdesk_dev';
 $db['default']['dbdriver'] = 'mysql';
 $db['default']['dbprefix'] = '';
 $db['default']['pconnect'] = TRUE;
