@@ -42,7 +42,7 @@
 	<div id="page-body">
 	<!-- This is where the loaded pages will be dumped -->
 	</div>
-	
+
 	<div id="footer">
 		<div id="arrow-left">::</div>
 		<div class="footer-content"></div>
