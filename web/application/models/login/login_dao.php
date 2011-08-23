@@ -27,17 +27,20 @@ class LoginDAO
     
     public function createLoginUser($username, $password)
     {
-        $encryptedPassword = $this->encryptPassword($password);
-        
+	$user = $this->createErrorUser();
+	
         //get the user with the same username and password
         $query = $this->_db->get_where("User",
             array 
             (
-                'username' => $username,
-                'password' => $encryptedPassword
+                'username' => $username
             ), 1, 0
         );
-        $user = $this->createUserFromQuery($query);
+        $loginUser = $this->createUserFromQuery($query);
+	if ($this->comparePasswords($password, $loginUser->encryptedPassword))
+	{
+	    $user = $loginUser;
+	}
         
         return $user;
     }
@@ -45,7 +48,7 @@ class LoginDAO
     public function createRegisterUser($username, $password, $email)
     {
         $user = $this->createErrorUser();
-        
+
         $query = $this->_db->get_where("User",
             array
             (
@@ -58,7 +61,7 @@ class LoginDAO
         {
             // good, user doesn't exist
             $encryptedPassword = $this->encryptPassword($password);
-            
+
             $newUserData = array
             (
                 "username" => $username,
@@ -74,10 +77,15 @@ class LoginDAO
         
         return $user;
     }
+
+    protected function comparePasswords($password, $encryptedPassword)
+    {
+	return $encryptedPassword == crypt($password, $encryptedPassword);
+    }
     
     protected function encryptPassword($password)
     {
-        return $password;
+	return crypt($password);
     }
     
     protected function createUserFromQuery($query)
@@ -89,6 +97,7 @@ class LoginDAO
             $user->hadError = false;
             $user->userId = $row->user_id;
             $user->username = $row->username;
+	    $user->encryptedPassword = $row->password;
             $user->email = $row->email;
             $user->usergroup = $row->usergroup;
             $user->title = $row->title;

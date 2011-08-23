@@ -5,6 +5,7 @@ class UserVO
     public $hadError;
     public $userId;
     public $username;
+    public $encryptedPassword;
     public $email;
     public $usergroup;
     public $title;
