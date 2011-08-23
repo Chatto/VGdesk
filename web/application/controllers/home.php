@@ -17,19 +17,19 @@ class Home extends CI_Controller
     public function index()
     {
 	$this->rebuildGet();
-	
+
 	if (isset($_GET['p']))
 	{
 	    $page = $_GET['p'];
 	}
-
 	if (isset($page))
 	{
 	    $this->displayHome($page);
-
+	}
 	else
 	{
 	    $this->displayHome("overview");
 	}
+
     }
 }
