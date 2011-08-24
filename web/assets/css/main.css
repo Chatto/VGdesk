@@ -382,9 +382,9 @@ div.color-black
 		to(rgba(50,50,50,0.8)));
 }
 
-/* Login Page CSS */
+/* Login/Registration Page CSS */
 
-.section#login-box
+.section#login-box, .section#reg-box
 {
 	width:400px;
 	height:auto;
@@ -394,6 +394,10 @@ div.color-black
 	margin:auto;
 }
 
+#login-box
+{
+	display:none;
+}
 
 #login-body
 {
@@ -404,7 +408,7 @@ div.color-black
 	position:fixed;
 }
 
-#login-forms
+#login-forms, #reg-forms
 {
 	font-size: 10pt;
 	text-align:left;
@@ -413,13 +417,14 @@ div.color-black
 	padding:10px;
 }
 
+/*
 #login-title
 {
 	font-size: 18pt;
 	text-align:left;
 	color:#FFF;
 }
-
+*/
 input
 {
 	border:1px solid rgba(0,0,0,0.4);
@@ -438,13 +443,15 @@ input[type="submit"], input[type="button"]
 	float:right;
 	display:block;
 }
-#username-input, #password-input
+
+#reg-forms input[type="text"], #login-forms input[type="text"], #reg-forms input[type="password"], #login-forms input[type="password"]
 {
 	display:block;
 	width:236px;
 	height:20px;
 	margin:10px;
 }
+
 #username-input
 {
 	
