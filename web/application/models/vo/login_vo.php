@@ -4,6 +4,7 @@ class UserVO
 {
     public $hadError;
     public $userId;
+    public $displayName;
     public $username;
     public $encryptedPassword;
     public $email;
@@ -29,6 +30,8 @@ class RegisterResponse
     public $usernameError = "";
     public $passwordValid = false;
     public $passwordError = "";
+    public $displayNameValid = false;
+    public $displayNameError = "";
     public $emailValid = false;
     public $emailError = "";
     public $registerValid = false;

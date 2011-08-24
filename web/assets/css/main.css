@@ -396,7 +396,7 @@ div.color-black
 
 #login-box
 {
-	display:none;
+	display:block;
 }
 
 #login-body

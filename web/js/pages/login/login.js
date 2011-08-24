@@ -12,12 +12,13 @@ Login.login = function(username, password, callback)
 	window.RequestManager.postRequest(url, params, RequestManager.parseJSON, callback);
 };
 
-Login.register = function(username, password, email, callback)
+Login.register = function(username, password, displayName, email, callback)
 {
 	var url = "index.php/login/login_api/register_user";
 	var params = {
 		username:username,
 		password:password,
+		displayName:displayName,
 		email:email
 	};
 	window.RequestManager.postRequest(url, params, RequestManager.parseJSON, callback);

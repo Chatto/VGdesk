@@ -49,13 +49,13 @@ class Login_model extends CI_Model
         return $response;
     }
 
-    public function registerUser($username, $password, $email)
+    public function registerUser($username, $password, $displayName, $email)
     {
-        $response = $this->_validator->validateRegister($username, $password, $email);
+        $response = $this->_validator->validateRegister($username, $password, $displayName, $email);
 
         if ($response->valid)
         {
-            $registerValid = $this->processRegister($username, $password, $email);
+            $registerValid = $this->processRegister($username, $password, $displayName, $email);
             if ($registerValid === true)
             {
                 $response->registerValid = true;
@@ -99,10 +99,10 @@ class Login_model extends CI_Model
         return $result;
     }
     
-    protected function processRegister($username, $password, $email)
+    protected function processRegister($username, $password, $displayName, $email)
     {
         $result = false;
-        $user = $this->_loginDAO->createRegisterUser($username, $password, $email);
+        $user = $this->_loginDAO->createRegisterUser($username, $password, $displayName, $email);
 
         if (!$user->hadError)
         {

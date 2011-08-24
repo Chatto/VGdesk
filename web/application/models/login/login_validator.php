@@ -19,7 +19,7 @@ class LoginValidator
         return $response;
     }
     
-    public function validateRegister($username, $password, $email)
+    public function validateRegister($username, $password, $displayName, $email)
     {
         $response = new RegisterResponse();
         $response->valid = true;

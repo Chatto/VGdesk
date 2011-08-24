@@ -45,7 +45,7 @@ class LoginDAO
         return $user;
     }
     
-    public function createRegisterUser($username, $password, $email)
+    public function createRegisterUser($username, $password, $displayName, $email)
     {
         $user = $this->createErrorUser();
 
@@ -64,6 +64,7 @@ class LoginDAO
 
             $newUserData = array
             (
+		"display_name" => $displayName,
                 "username" => $username,
                 "password" => $encryptedPassword,
                 "email" => $email,
@@ -96,6 +97,7 @@ class LoginDAO
         {
             $user->hadError = false;
             $user->userId = $row->user_id;
+	    $user->displayName = $row->display_name;
             $user->username = $row->username;
 	    $user->encryptedPassword = $row->password;
             $user->email = $row->email;

@@ -34,9 +34,10 @@ class Login_api extends CI_Controller
 	{
 		$username = $this->input->post("username");
 		$password = $this->input->post("password");
+		$displayName = $this->input->post("displayName");
 		$email = $this->input->post("email");
 		
-		$response = $this->login_model->registerUser($username, $password, $email);
+		$response = $this->login_model->registerUser($username, $password, $displayName, $email);
 		echo json_encode($response);
 	}
 
