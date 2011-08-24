@@ -37,6 +37,7 @@
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('forum')">Forum</a></p>
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('chat')">Chat</a></p>
 		<p class="header-button"><a href="javascript:VGDeskHome.navigate('tools')">Tools</a></p>
+		<p id="user-box"><span class="log-data">Welcome <?php if ($user != null) echo $user->username; else echo "Not Logged In"; ?></span><br><a href="#">Settings</a> - <a href="#">Profile</a> - <a href="javascript:null(0)">Logout</a></p>
 	</div>
 	
 	<div id="page-body">
