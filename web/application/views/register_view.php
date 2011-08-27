@@ -1,4 +1,7 @@
 <span class="page-script">
+     VGDeskHome.hideHeader();
+     VGDeskHome.setPageId("register");
+
      function onRegisterViewLoaded(success) { RegisterView.onLoad(success); }
      IncludeManager.includeScripts(["js/pages/login/login.js", "js/pages/login/register_view.js"], onRegisterViewLoaded);
 </span>
@@ -21,7 +24,7 @@
 					<input id="reg-passverify" type="password" name="regpassverify"/>
 					<label for="regemail">Email</label>
 					<input id="reg-email" type="text" name="regemail"/><br>
-					<input type="submit" value=" Submit&#8594; ">
+					<input type="submit" value=" Submit&#8594; " /><input type="button" onClick="RegisterView.onLogin()" value="Back to Login"/>
 				</fieldset>
 			</form>
 		</div>

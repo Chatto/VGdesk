@@ -1,12 +1,32 @@
 var VGDeskHome = {};
 
 VGDeskHome.startPage = vgdesk_default_page;
+VGDeskHome.user = null;
 
 VGDeskHome.onPageLoaded = function(e)
 {
-	VGDeskHome.hideHeader();
-	VGDeskHome.navigate(VGDeskHome.startPage);
+    IncludeManager.includeScripts(["js/pages/login/login.js"], VGDeskHome.onPageLoadComplete);
 };
+
+VGDeskHome.onPageLoadComplete = function()
+{ 
+    VGDeskHome.hideHeader();
+
+    // get the page from the hash tag
+    var page = getQueryString("#")["p"];
+    if (page)
+    {
+	VGDeskHome.startPage = page;
+    }
+    
+    Login.getLoggedInUser(VGDeskHome.setLoggedInUser);
+    VGDeskHome.navigate(VGDeskHome.startPage);
+};
+
+VGDeskHome.setPageId = function(pageId)
+{
+    window.location = "#p=" + pageId;
+}
 
 VGDeskHome.navigate = function(pageId)
 {
@@ -24,6 +44,8 @@ VGDeskHome.dumpPageText = function(pageId, text)
 	{
 		dumpElement.innerHTML = "Page Not Found";
 	}
+	
+	VGDeskHome.verifyUser();
 
 	VGDeskHome.showHeader();
 };		
@@ -42,4 +64,50 @@ VGDeskHome.showHeader = function()
 	document.getElementById("footer").style.display = "block";
 
 	document.getElementById("page-body").className = "page-body-header";
+};
+
+VGDeskHome.onLogout = function()
+{
+    Login.logout(VGDeskHome.onLogoutComplete);
+};
+
+VGDeskHome.onLogoutComplete = function(response)
+{
+    VGDeskHome.setLoggedInUser(response);
+    VGDeskHome.navigate("login");
+};
+
+VGDeskHome.setLoggedInUser = function(user)
+{
+    VGDeskHome.user = user;
+    VGDeskHome.onLoggedInUserChanged(user);
+};
+
+VGDeskHome.getLoggedInUser = function()
+{
+    return VGDeskHome.user;
+};
+
+VGDeskHome.onLoggedInUserChanged = function(user)
+{
+    var welcomeMessage = document.getElementById("welcome-message");
+    if (user != null)
+    {
+	welcomeMessage.innerHTML = "Welcome " + user.username;
+    }
+};
+
+VGDeskHome.verifyUser = function()
+{
+    var verifyUserElements = getElementsByClassName("verify-user");
+    for (var i=0; i<verifyUserElements.length; i++)
+    {
+	globalEval("var vgdeskHomeVerifyUserParseJSONResult = " + verifyUserElements[i].innerHTML);
+	var user = vgdeskHomeVerifyUserParseJSONResult;
+
+	if (user.username != VGDeskHome.user.username)
+	{
+	    alert("FUCK YOU HACKER");
+	}
+    }
 };

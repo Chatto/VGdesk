@@ -16,6 +16,8 @@ Navigation.navigateTo = function(pageId, callback)
 {
 	var pageUrl = Navigation.navigationUrlData[pageId];
 
+	window.location = "#p=" + pageId;
+
 	if (pageUrl)
 	{
 		RequestManager.getRequest(pageUrl, Navigation.dumpText, {pageId:pageId, callback:callback});

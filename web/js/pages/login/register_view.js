@@ -1,5 +1,3 @@
-VGDeskHome.hideHeader();
-
 var RegisterView = {};
 
 RegisterView.onLoad = function(success)
@@ -9,6 +7,11 @@ RegisterView.onLoad = function(success)
 	console.debug("Script Failed to Load!!!");
     }
 };
+
+RegisterView.onLogin = function()
+{
+    VGDeskHome.navigate("login");
+}
 
 RegisterView.onRegister = function()
 {
@@ -23,13 +26,15 @@ RegisterView.onRegister = function()
 	this.onError("Passwords do not match!");
     }
 
-    Login.login(username, password, displayName, email, RegisterView.onRegisterComplete);
+    Login.register(username, password, displayName, email, RegisterView.onRegisterComplete);
 
 };
 
 RegisterView.onRegisterComplete = function(response)
 {
-    if (resopnse.valid)
+    VGDeskHome.setLoggedInUser(response.user);
+    
+    if (response.valid)
     {
 	alert("Register Successful");
 
@@ -60,7 +65,7 @@ RegisterView.onRegisterComplete = function(response)
     }
 };
 
-RegisterView.onError(error)
+RegisterView.onError = function(error)
 {
     alert(error);
 };

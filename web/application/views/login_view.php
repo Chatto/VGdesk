@@ -1,4 +1,7 @@
 <span class="page-script" >
+    VGDeskHome.hideHeader();
+    VGDeskHome.setPageId("login");
+
     function onLoginViewLoaded(success) { LoginView.onLoad(success); }
     IncludeManager.includeScripts(["js/pages/login/login.js", "js/pages/login/login_view.js"], onLoginViewLoaded);
 </span>
@@ -17,7 +20,7 @@
 					<label for="password">Password</label>
 					<input id="password-input" type="password" name="password" /><br>						
 					<input type="submit" value=" Log On&#8594; " />
-					<input type="button" value=" Register " />
+					<input type="button" onclick="LoginView.onRegister()" value=" Register " />
 				</fieldset>			
 			</form>
 		</div>

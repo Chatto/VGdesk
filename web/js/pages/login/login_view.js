@@ -1,5 +1,3 @@
-VGDeskHome.hideHeader();
-	
 var LoginView = {};
 	
 LoginView.onLoad = function(success)
@@ -9,6 +7,11 @@ LoginView.onLoad = function(success)
 	console.debug("Script Failed to Load!!!");
     }
 };
+
+LoginView.onRegister = function()
+{
+    VGDeskHome.navigate("register");
+}
 	
 LoginView.onLogin = function()
 {
@@ -20,6 +23,8 @@ LoginView.onLogin = function()
 	
 LoginView.onLoginComplete = function(response)
 {
+    VGDeskHome.setLoggedInUser(response.user);
+    
     if (response.valid)
     {
 	alert("Login Successful");

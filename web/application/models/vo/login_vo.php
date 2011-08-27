@@ -21,6 +21,7 @@ class LoginResponse
     public $passwordValid = false;
     public $passwordError = "";
     public $loginValid = false;
+    public $user = null;
 }
 
 class RegisterResponse
@@ -35,4 +36,5 @@ class RegisterResponse
     public $emailValid = false;
     public $emailError = "";
     public $registerValid = false;
+    public $user = null;
 }

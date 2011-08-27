@@ -46,6 +46,8 @@ class Login_model extends CI_Model
             }
         }
 
+	$response->user = $this->getLoggedInUser();
+
         return $response;
     }
 
@@ -66,6 +68,8 @@ class Login_model extends CI_Model
                 $response->valid = false;
             }
         }
+
+	$response->user = $this->getLoggedInUser();
 
         return $response;
     }
@@ -101,13 +105,13 @@ class Login_model extends CI_Model
     
     protected function processRegister($username, $password, $displayName, $email)
     {
-        $result = false;
+	$result = false;
         $user = $this->_loginDAO->createRegisterUser($username, $password, $displayName, $email);
 
         if (!$user->hadError)
         {
             $this->saveUser($user);
-            $result = true;
+	    $result = true;
         }
 
         return $result;

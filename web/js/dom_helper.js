@@ -11,8 +11,14 @@ var globalEval = function globalEval(src) {
 };
 
 // javascript querystring helper
-function getQueryString() {
-    var result = {}, queryString = location.search.substring(1),
+function getQueryString(separator) {
+    if (separator == null)
+    {
+	separator = "?";
+    }
+
+    var locationSearch = window.location.href.substring(window.location.href.lastIndexOf(separator) + 1);
+    var result = {}, queryString = locationSearch,
 			 re = /([^&=]+)=([^&]*)/g, m;
 
     while (m = re.exec(queryString)) {

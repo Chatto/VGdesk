@@ -6,6 +6,9 @@ class Overview_page extends PageController
 {
     public function index()
     {
-        $this->load->view("pages/overview/overview_view");
+	$data = array();
+	$data["user"] = $this->user;
+
+        $this->load->view("pages/overview/overview_view", $data);
     }
 }
