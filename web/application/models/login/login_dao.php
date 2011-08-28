@@ -37,7 +37,9 @@ class LoginDAO
             ), 1, 0
         );
         $loginUser = $this->createUserFromQuery($query);
-	if ($this->comparePasswords($password, $loginUser->encryptedPassword))
+	$encryptedPassword = $this->getUserPasswordFromQuery($query);
+
+	if ($this->comparePasswords($password, $encryptedPassword))
 	{
 	    $user = $loginUser;
 	}
@@ -99,7 +101,6 @@ class LoginDAO
             $user->userId = $row->user_id;
 	    $user->displayName = $row->display_name;
             $user->username = $row->username;
-	    $user->encryptedPassword = $row->password;
             $user->email = $row->email;
             $user->usergroup = $row->usergroup;
             $user->title = $row->title;
@@ -108,6 +109,18 @@ class LoginDAO
         }
     
         return $user;
+    }
+
+    protected function getUserPasswordFromQuery($query)
+    {
+	$password = null;
+	foreach ($query->result() as $row)
+	{
+	    $password = $row->password;
+	    break;
+	}
+
+	return $password;
     }
     
     protected function createErrorUser()

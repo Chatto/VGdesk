@@ -6,7 +6,6 @@ class UserVO
     public $userId;
     public $displayName;
     public $username;
-    public $encryptedPassword;
     public $email;
     public $usergroup;
     public $title;
