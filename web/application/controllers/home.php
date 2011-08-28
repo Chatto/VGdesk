@@ -1,25 +1,13 @@
-
 <?php
 
-class Home extends CI_Controller 
+include_once("application/controllers/page_controller.php");
+
+class Home extends PageController 
 {
-    protected $user;
-
-    public function __construct()
-    {
-	parent::__construct();
-	
-	// no cache
-        header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-        header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-    }
-
     protected function displayHome($pageId)
     {
-	$data = array();
-	$data["default_page"] = $pageId;
-
-	$this->load->view("home_view", $data);
+	$this->_requestData["default_page"] = $pageId;
+	$this->loadView("home_view");
     }
 
     public function index()

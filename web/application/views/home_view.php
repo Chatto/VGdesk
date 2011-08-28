@@ -5,25 +5,25 @@
 	<link rel="stylesheet" type="text/css" href="assets/css/main.css">
 	
 	<!-- Jquery Library -->
-	<script type="text/javascript" src="js/jquery.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/jquery.js"></script>
 	
 	<!-- Let Javascript be loaded automatically -->
-	<script type="text/javascript" src="js/include_manager.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/include_manager.js"></script>
 	
 	<!-- Contains some helpers for manager the DOM -->
-	<script type="text/javascript" src="js/dom_helper.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/dom_helper.js"></script>
 	
 	<!-- Contains some helper functions for http request -->
-	<script type="text/javascript" src="js/request_manager.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/request_manager.js"></script>
 	
 	<!-- Contains all of the Page Loading Logic -->
-	<script type="text/javascript" src="js/navigation.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/navigation.js"></script>
 	
 	<!-- Home Page Script -->
         <script type="text/javascript">
              var vgdesk_default_page = '<?php echo("$default_page") ?>';
         </script>
-	<script type="text/javascript" src="js/vgdesk_home.js"></script>
+	<script type="text/javascript" src="<?php echo($base_url)?>/js/vgdesk_home.js"></script>
 	
 </head>
 <body onload="VGDeskHome.onPageLoaded(event)">

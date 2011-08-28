@@ -1,7 +1,8 @@
 var VGDeskHome = {};
 
-VGDeskHome.startPage = vgdesk_default_page;
+VGDeskHome.defaultPage = "overview";
 VGDeskHome.user = null;
+VGDeskHome.currentPageId = "";
 
 VGDeskHome.onPageLoaded = function(e)
 {
@@ -11,25 +12,41 @@ VGDeskHome.onPageLoaded = function(e)
 VGDeskHome.onPageLoadComplete = function()
 { 
     VGDeskHome.hideHeader();
+    Login.getLoggedInUser(VGDeskHome.initialize);
+};
 
-    // get the page from the hash tag
-    var page = getQueryString("#")["p"];
-    if (page)
+VGDeskHome.initialize = function(user)
+{
+    VGDeskHome.setLoggedInUser(user);
+    window.onhashchange = VGDeskHome.onHashChange;
+    VGDeskHome.onHashChange();
+}; 
+
+VGDeskHome.onHashChange = function()
+{
+    var hash = getQueryString("#");
+    var pageId = hash["p"];
+
+    if (pageId == "undefined")
     {
-	VGDeskHome.startPage = page;
+	pageId = VGDeskHome.defaultPage;
     }
-    
-    Login.getLoggedInUser(VGDeskHome.setLoggedInUser);
-    VGDeskHome.navigate(VGDeskHome.startPage);
+
+    if (pageId != VGDeskHome.currentPageId)
+    {
+	VGDeskHome.navigate(pageId);
+    }
 };
 
 VGDeskHome.setPageId = function(pageId)
 {
+    VGDeskHome.currentPageId = pageId;
     window.location = "#p=" + pageId;
 }
 
 VGDeskHome.navigate = function(pageId)
 {
+    this.currentPageId = pageId;
 	Navigation.navigateTo(pageId, VGDeskHome.dumpPageText);
 };
 
@@ -45,8 +62,6 @@ VGDeskHome.dumpPageText = function(pageId, text)
 		dumpElement.innerHTML = "Page Not Found";
 	}
 	
-	VGDeskHome.verifyUser();
-
 	VGDeskHome.showHeader();
 };		
 
@@ -94,20 +109,5 @@ VGDeskHome.onLoggedInUserChanged = function(user)
     if (user != null)
     {
 	welcomeMessage.innerHTML = "Welcome " + user.username;
-    }
-};
-
-VGDeskHome.verifyUser = function()
-{
-    var verifyUserElements = getElementsByClassName("verify-user");
-    for (var i=0; i<verifyUserElements.length; i++)
-    {
-	globalEval("var vgdeskHomeVerifyUserParseJSONResult = " + verifyUserElements[i].innerHTML);
-	var user = vgdeskHomeVerifyUserParseJSONResult;
-
-	if (user.username != VGDeskHome.user.username)
-	{
-	    alert("FUCK YOU HACKER");
-	}
     }
 };

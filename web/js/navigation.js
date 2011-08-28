@@ -14,28 +14,35 @@ Navigation.navigationUrlData['tools'] = "index.php/tools/tools_page/";
 // Call Navigation method to navigate to the page with the given Id
 Navigation.navigateTo = function(pageId, callback)
 {
-	var pageUrl = Navigation.navigationUrlData[pageId];
+    var pageUrl = Navigation.navigationUrlData[pageId];
 
-	window.location = "#p=" + pageId;
+    window.location = "#p=" + pageId;
 
-	if (pageUrl)
+    if (pageUrl)
+    {
+	var username = "";
+	var loggedInUser = VGDeskHome.getLoggedInUser();
+	if (loggedInUser != null)
 	{
-		RequestManager.getRequest(pageUrl, Navigation.dumpText, {pageId:pageId, callback:callback});
+	    username = loggedInUser.username;
 	}
+
+        RequestManager.postRequest(pageUrl, {username:username}, Navigation.dumpText, {pageId:pageId, callback:callback});
+    }
 };
 
 Navigation.dumpText = function(text, userData)
 {
-	// callback
-	if (userData.callback)
-	{
-		userData.callback(userData.pageId, text);
-	}
-	
-	// execute the scripts
-	var scripts = getElementsByClassName("page-script", "span");
-	for (var i=0; i<scripts.length; i++)
-	{
-		globalEval(scripts[i].innerHTML);
-	}
+    // callback
+    if (userData.callback)
+    {
+        userData.callback(userData.pageId, text);
+    }
+    
+    // execute the scripts
+    var scripts = getElementsByClassName("page-script", "span");
+    for (var i=0; i<scripts.length; i++)
+    {
+        globalEval(scripts[i].innerHTML);
+    }
 };

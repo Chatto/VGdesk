@@ -4,8 +4,13 @@ include_once("application/controllers/page_controller.php");
 
 class Writer_page extends PageController
 {
-	public function index()
-	{
-		echo "Writer Page";
-	}
+    public function __construct()
+    {
+	parent::__construct(true);
+    }
+    
+    public function index()
+    {
+        echo "Writer Page";
+    }
 }

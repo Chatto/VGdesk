@@ -1,6 +1,7 @@
 <span class="page-script" >
     VGDeskHome.hideHeader();
     VGDeskHome.setPageId("login");
+    VGDeskHome.setLoggedInUser(null);
 
     function onLoginViewLoaded(success) { LoginView.onLoad(success); }
     IncludeManager.includeScripts(["js/pages/login/login.js", "js/pages/login/login_view.js"], onLoginViewLoaded);

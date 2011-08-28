@@ -6,6 +6,8 @@ LoginView.onLoad = function(success)
     {
 	console.debug("Script Failed to Load!!!");
     }
+
+    VGDeskHome.setLoggedInUser(null);
 };
 
 LoginView.onRegister = function()
@@ -28,7 +30,7 @@ LoginView.onLoginComplete = function(response)
     if (response.valid)
     {
 	alert("Login Successful");
-			
+	
 	VGDeskHome.navigate("overview");
     }
     else

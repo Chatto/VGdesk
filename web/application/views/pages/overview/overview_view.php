@@ -2,8 +2,6 @@
      VGDeskHome.setPageId("overview");
 </span>
 
-<span class="verify-user"><?php echo(json_encode($user)) ?></span>
-
 <div class="section vertical-column" id="agenda">
 	<div class="section-header"><span>Dashboard</span></div>
 	<div class="user-clock log-entry color-black">

@@ -1,9 +1,10 @@
 <span class="page-script">
-     VGDeskHome.hideHeader();
-     VGDeskHome.setPageId("register");
-
-     function onRegisterViewLoaded(success) { RegisterView.onLoad(success); }
-     IncludeManager.includeScripts(["js/pages/login/login.js", "js/pages/login/register_view.js"], onRegisterViewLoaded);
+    VGDeskHome.hideHeader();
+    VGDeskHome.setPageId("register");
+    VGDeskHome.setLoggedInUser(null);
+    
+    function onRegisterViewLoaded(success) { RegisterView.onLoad(success); }
+    IncludeManager.includeScripts(["js/pages/login/login.js", "js/pages/login/register_view.js"], onRegisterViewLoaded);
 </span>
 
 <div id="login-body">
