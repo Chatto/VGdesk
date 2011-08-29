@@ -13,6 +13,6 @@ class Chat_page extends PageController
     
     public function index()
     {
-        echo "Chat Page";
+	$this->loadView("pages/chat/chat_view");
     }
 }
