@@ -8,7 +8,6 @@ include_once("application/models/login/login_session_manager.php");
 
 class Login_model extends CI_Model
 {
-    
     protected $_validator;
     protected $_loginSessionManager;
     protected $_loginDAO;
