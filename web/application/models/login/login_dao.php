@@ -2,15 +2,23 @@
 
 include_once("application/models/vo/login_vo.php");
 
+/**
+ * Login Data Access Object
+ * Encapsulates all Login Database Access Logic
+ */
 class LoginDAO
 {
-    protected $_db;
+    protected $_db; /// Code Igniter Database Object
     
     public function __construct($database)
     {
         $this->_db = $database;
     }
     
+    /**
+     * Return a UserVO of the user with the given ID.
+     * If there is no such user, return an error UserVO
+     */
     public function createUser($userId)
     {
         // get the user with the same user ID
@@ -25,6 +33,10 @@ class LoginDAO
         return $user;
     }
     
+    /**
+     * Return a UserVO of the user with the given username and password.
+     * If the login info was incorrect, return an error UserVO
+     */
     public function createLoginUser($username, $password)
     {
 	$user = $this->createErrorUser();
@@ -47,6 +59,10 @@ class LoginDAO
         return $user;
     }
     
+    /**
+     * Register a new user, and return a new UserVO.
+     * If a user with the same username already exists, return an error UserVO
+     */
     public function createRegisterUser($username, $password, $displayName, $email)
     {
         $user = $this->createErrorUser();
@@ -81,16 +97,36 @@ class LoginDAO
         return $user;
     }
 
+    /**
+     * Compare the password with the one stored in the database
+     * Retrieve the salt and password hash from $encryptedPassword
+     * and recreate the hash using the salt and the test password
+     */
     protected function comparePasswords($password, $encryptedPassword)
     {
-	return $encryptedPassword == crypt($password, $encryptedPassword);
+	$salt = substr($encryptedPassword, 0, 64);
+	$validHash = substr($encryptedPassword, 64, 64);
+	$testHash = hash("sha256", $salt . $password);
+	
+	return $testHash === $validHash;
     }
-    
+
+    /**
+     * Encrypt the Password using Sha256 and a random salt
+     * Store the salt alonside the password hash
+     * The final $encryptedPassword will be 128 characters
+     */
     protected function encryptPassword($password)
     {
-	return crypt($password);
+	$salt = bin2hex(mcrypt_create_iv(32, MCRYPT_DEV_URANDOM));
+	$hash = hash("sha256", $salt . $password);
+	$final = $salt . $hash;
+	return $final;
     }
     
+    /**
+     * Create a UserVO from a database query of the User table
+     */
     protected function createUserFromQuery($query)
     {
         $user = $this->createErrorUser();
@@ -111,6 +147,9 @@ class LoginDAO
         return $user;
     }
 
+    /**
+     * Returns the encrypted password from a database query of the User table
+     */
     protected function getUserPasswordFromQuery($query)
     {
 	$password = null;
@@ -123,6 +162,9 @@ class LoginDAO
 	return $password;
     }
     
+    /**
+     * Create an error UserVO
+     */
     protected function createErrorUser()
     {
         $user = new UserVO();
