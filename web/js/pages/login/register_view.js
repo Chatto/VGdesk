@@ -44,23 +44,23 @@ RegisterView.onRegisterComplete = function(response)
     {
 	if (!response.usernameValid)
 	{
-	    this.onError(response.usernameError);
+	    RegisterView.onError(response.usernameError);
 	}
 	else if (!response.passwordValid)
 	{
-	    this.onError(response.passwordError);
+	    RegisterView.onError(response.passwordError);
 	}
 	else if (!response.displayNameValid)
 	{
-	    this.onError(response.displayNameError);
+	    RegisterView.onError(response.displayNameError);
 	}
 	else if (!response.emailValid)
 	{
-	    this.onError(response.emailError);
+	    RegisterView.onError(response.emailError);
 	}
 	else
 	{
-	    this.onError("Username is already taken. Please Try Again.");
+	    RegisterView.onError("Username is already taken. Please Try Again.");
 	}
     }
 };

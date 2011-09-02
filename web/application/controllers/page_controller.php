@@ -53,7 +53,7 @@ class PageController extends CI_Controller
 	if ($this->_user->username != $clientUsername)
 	{
 	    $userError = true;
-	    $this->login_model->logout_user();
+	    $this->login_model->logoutUser();
 	}
 
 	if ($userError)
