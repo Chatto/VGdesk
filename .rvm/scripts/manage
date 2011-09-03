@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# __rvm_detect_system() does not support AIX
+sys=$( command uname -s )
+if [[ "${sys}" == AIX ]]
+then name_opt=-name
+else name_opt=-iname
+fi
+original_ruby_version=${rvm_ruby_version:-""}
+original_ruby_string=${rvm_ruby_string:-""}
+
+source "$rvm_scripts_path/patches"
+source "$rvm_scripts_path/functions/build"
+source "$rvm_scripts_path/functions/pkg"
+source "$rvm_scripts_path/functions/irbrc"
+source "$rvm_scripts_path/functions/db"
+source "$rvm_scripts_path/functions/rubygems"
+source "$rvm_scripts_path/functions/manage/base"
+
+if [[ -n "${RUBYOPT:-""}" ]]
+then ruby_options="$RUBYOPT"
+fi
+unset RUBYLIB RUBYOPT # Sanity check.
+
+binaries=()
+
+__rvm_manage_rubies  # located in scripts/functions/manage/base

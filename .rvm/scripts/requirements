@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+: rvm_scripts_path:${rvm_scripts_path:=$rvm_path/scripts}
+
+source "$rvm_scripts_path/base"
+source "$rvm_scripts_path/patches"
+source "$rvm_scripts_path/functions/build"
+
+__rvm_setup_compile_environment_setup
+__rvm_setup_compile_environment_requirements "$@"

@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/base"
+source "$rvm_scripts_path/functions/tools"
+
+usage()
+{
+  echo "Usage: rvm tools {identifier,path-identifier,strings,user}" 1>&2
+  return 1
+}
+
+# Return the identifier that's current in use.
+tools_identifier()
+{
+  __rvm_env_string
+}
+
+tools_path_identifier()
+{
+  if [[ -z "$1" || ! -d "$1" ]]; then
+    echo "Usage: rvm tools path-identifier 'path-to-check'"
+    return 1
+  fi
+
+  __rvm_cd "$1"
+  __rvm_do_with_env_before
+  rvm_promptless=1 __rvm_project_rvmrc >/dev/null 2>&1
+  rvmrc_result="$?"
+  __rvm_env_string
+  __rvm_do_with_env_after
+  return $rvmrc_result
+}
+
+tools_user_usage()
+{
+  typeset msg
+
+  for msg in "$@"
+  do
+    rvm_error "$msg"
+  done
+
+  rvm_error "Usage: rvm user [[gemsets] [rubies] [hooks] [pkgs] [wrappers] [all] [--skel]|none]"
+}
+
+tools_user_setup_path()
+{
+  tools_user_setup "$1" "rvm_$2_path" "\${HOME}/.rvm/$2"
+}
+
+tools_user_setup()
+( # subprocess cause we change the HOME
+  typeset _target _var_name _user_value
+  _target="$1"
+  _var_name="$2"
+  _user_value="$3"
+
+  # detect _var_name in config
+  if [[ -f "${_target}/.rvmrc" ]] && __rvm_grep "^export ${_var_name}=" "${_target}/.rvmrc" > /dev/null
+  then
+    # if defined read path
+    _user_value="$( __rvm_grep "^export ${_var_name}=" "${_target}/.rvmrc" | __rvm_sed "s/^export ${_var_name}=//" )"
+  else
+    # if not defined - define it
+    echo "export ${_var_name}=\"${_user_value}\"" >> "${_target}/.rvmrc"
+  fi
+
+  # set home to _target, so --skel works fine
+  HOME="${_target}"
+  # resolve the stored path
+  eval "_user_value=\"${_user_value}\""
+
+  # ensure the defined path exists
+  [[ -d "${_user_value}" ]] || mkdir -p "${_user_value}"
+
+  # create empty db files for rvm_user_value
+  if [[ "$_var_name" == "rvm_user_path" ]]
+  then
+    typeset _file
+    for _file in db md5 rvmrcs sha512
+    do
+      [[ -f "${_user_value}/${_file}" ]] || touch "${_user_value}/${_file}"
+    done
+  fi
+)
+
+tools_user_none()
+{
+  __rvm_sed_i "$1" -E -e "/^(export )?rvm_[a-z_]+_path=/ d" -e "/^(export )?rvm_create_flag=/ d"
+}
+
+tools_user()
+{
+  typeset item dir target
+  typeset -a selection
+
+  for item in $@
+  do
+    case "$item" in
+      all)     selection+=( gemsets rubies hooks pkgs wrappers userdb log ) ;;
+      gemsets) selection+=( gemsets userdb log ) ;;
+      --skel)  rvm_skel_flag=1 ;;
+      rubies|hooks|pkgs|userdb|log|wrappers)  selection+=( "$item" ) ;;
+      (none)
+        tools_user_none "${HOME}/.rvmrc"
+        return $?
+        ;;
+      *)
+        tools_user_usage "Unrecognized option '$item'."
+        return 1
+        ;;
+    esac
+  done
+
+  if (( ${#selection[@]} == 0 ))
+  then
+    tools_user_usage
+    return 1
+  fi
+
+  if [[ ${rvm_skel_flag:-0} == 1 ]] && (( UID ))
+  then
+    tools_user_usage "The --skel flag should be run as root: rvmsudo rvm user $@."
+    return 1
+  fi
+
+  [[ ${rvm_skel_flag:-0} == 1 ]] && target=/etc/skel || target="${HOME}"
+
+  if [[ ! -w "${target}" ]] || [[ -d "${target}/.rvm" && ! -w "${target}/.rvm" ]]
+  then
+    tools_user_usage "Directory '${target}' or '${target}/.rvm' is not writable for current user."
+    return 1
+  fi
+
+  if [[ -f "${target}/.rvmrc" && ! -w "${target}/.rvmrc" ]]
+  then
+    tools_user_usage "Configuration file '${target}/.rvmrc' is not writable for current user."
+    return 1
+  fi
+
+  for item in "${selection[@]}"
+  do
+    case "$item" in
+      rubies)
+        for dir in archives bin environments gems gems_cache log repos rubies rubygems src tmp wrappers user
+        do
+          tools_user_setup_path "${target}" $dir
+        done
+        tools_user_setup "${target}" rvm_create_flag 1
+        ;;
+      gemsets)
+        for dir in environments gems gems_cache wrappers
+        do
+          tools_user_setup_path "${target}" $dir
+        done
+        tools_user_setup "${target}" rvm_create_flag 1
+        ;;
+      wrappers|hooks|pkgs|log)
+        tools_user_setup_path "${target}" wrappers
+        ;;
+      userdb)
+        tools_user_setup_path "${target}" user
+        ;;
+    esac
+  done
+}
+
+tools_mirror()
+{
+  typeset file="$rvm_user_path/db"
+  if
+    [[ -f "$file" ]] &&
+    __rvm_grep "^ruby_url=" "$file" >/dev/null
+  then
+    if
+     (( ${rvm_force_flag:-0} == 1 ))
+    then
+      __rvm_sed_i "${file}" -e "s/^ruby_${n}_url=.*$/ruby_${n}_url=http:\/\/www.mirrorservice.org\/sites\/ftp.ruby-lang.org\/pub\/ruby\/${n}/"
+    else
+      rvm_warn "Some settings already exist, use 'rvm --force tools mirror' to overwrite."
+    fi
+  else
+    printf "ruby_url=http://www.mirrorservice.org/sites/ftp.ruby-lang.org/pub/ruby\n" >> "$file"
+  fi
+}
+
+tools_rvm_env()
+{
+  typeset script
+  rvm_log "# use shebang: #!/usr/bin/$1-rvm-env 1.9.3"
+  for script in $@
+  do
+    if builtin command -v ${script} >/dev/null
+    then
+      sudo ln -nfs $rvm_bin_path/rvm-shell /usr/bin/${script}-rvm-env &&
+        rvm_log "Created link '/usr/bin/${script}-rvm-env'." ||
+        rvm_error "Cannot create link '/usr/bin/${script}-rvm-env'."
+    else
+      rvm_error "There is no command/script '${script}' in system."
+    fi
+  done
+}
+
+args=($*)
+action="${args[0]}"
+args="$(echo ${args[@]:1})" # Strip trailing / leading / extra spacing.
+
+[[ -z "$action" ]] && usage
+
+case "$action" in
+  identifier)      tools_identifier ;;
+  path-identifier) tools_path_identifier "$args" ;;
+  strings)         tools_strings "$args" ;;
+  mirror)          tools_mirror ;;
+  user)            __rvm_call_with_restored_umask tools_user "$args" ;;
+  rvm-env)         tools_rvm_env $args ;;
+  *)               usage ;;
+esac

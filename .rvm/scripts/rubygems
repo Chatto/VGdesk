@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/base"
+source "$rvm_scripts_path/functions/db"
+source "$rvm_scripts_path/functions/rubygems"
+
+result=0
+
+__rvm_become
+
+builtin command -v ruby > /dev/null || {
+  rvm_error "'ruby' was not found, cannot install rubygems unless ruby is present (Do you have an RVM ruby installed & selected?)"
+  exit 1
+}
+
+version="$1"
+shift
+
+[[ -n "$version" ]] || {
+  rvm_error "Usage: rvm rubygems [x.y.z|latest-x.y|latest|remove]"
+  exit 1
+}
+
+case "$version" in
+  remove|validate|validate_gemfile)
+    rubygems_$version "$@"
+    ;;
+  *)
+    rubygems_setup ${version}
+    ;;
+esac

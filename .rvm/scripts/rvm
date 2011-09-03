@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+
+# rvm : Ruby enVironment Manager
+# https://rvm.io
+# https://github.com/wayneeseguin/rvm
+
+# partial duplication marker dkjnkjvnckbjncvbkjnvkj
+# prevent from loading in sh shells
+if
+  test -n "${BASH_VERSION:-}" -o -n "${ZSH_VERSION:-}"
+then
+  case "`uname`" in
+    (CYGWIN*) __shell_name="`ps -p $$ | awk 'END {print $NF}'` 2>/dev/null" ;;
+    (*)       __shell_name="`ps -p $$ -o comm=`"                ;;
+  esac
+  case "$__shell_name" in
+    (""|dash|sh|*/dash|*/sh) return 0 ;; # silently stop in sh shells
+  esac
+  unset __shell_name
+else
+  return 0
+fi
+
+# also duplicated in scripts/base
+__rvm_has_opt()
+{
+  {
+    # pre-gnu
+    [[ -n "${ZSH_VERSION}"  ]] && setopt | GREP_OPTIONS="" \grep "^${1}$" >/dev/null 2>&1
+  } ||
+  {
+    [[ -n "${BASH_VERSION}" ]] && [[ ":$SHELLOPTS:" =~ ":${1}:" ]]
+  } ||
+  return 1
+}
+
+# Do not allow sourcing RVM in `sh` - it's not supported
+# return 0 to exit from sourcing this script without breaking sh
+if __rvm_has_opt "posix"
+then return 0
+fi
+
+# TODO: Alter the variable names to make sense
+\export HOME rvm_prefix rvm_user_install_flag rvm_path
+HOME="${HOME%%+(\/)}" # Remove trailing slashes if they exist on HOME
+
+[[ -n "${rvm_stored_umask:-}" ]] || export rvm_stored_umask=$(umask)
+if (( ${rvm_ignore_rvmrc:=0} == 0 ))
+then
+  rvm_rvmrc_files=("/etc/rvmrc" "$HOME/.rvmrc")
+  if [[ -n "${rvm_prefix:-}" ]] && ! [[ "$HOME/.rvmrc" -ef "${rvm_prefix}/.rvmrc" ]]
+  then rvm_rvmrc_files+=( "${rvm_prefix}/.rvmrc" )
+  fi
+
+  for rvmrc in "${rvm_rvmrc_files[@]}"
+  do
+    if [[ -f "$rvmrc" ]]
+    then
+      # pre-gnu
+      if GREP_OPTIONS="" \grep '^\s*rvm .*$' "$rvmrc" >/dev/null 2>&1
+      then
+        printf "%b" "
+Error:
+        $rvmrc is for rvm settings only.
+        rvm CLI may NOT be called from within $rvmrc.
+        Skipping the loading of $rvmrc"
+        return 1
+      else
+        source "$rvmrc"
+      fi
+    fi
+  done
+  unset rvm_rvmrc_files
+fi
+
+# duplication marker jdgkjnfnkjdngjkfnd4fd
+# detect rvm_path if not set
+if [[ -z "${rvm_path:-}" ]]
+then
+  if [[ -n "${BASH_SOURCE:-$_}" && -f "${BASH_SOURCE:-$_}" ]]
+  then
+    rvm_path="${BASH_SOURCE:-$_}"
+    rvm_path="$( \cd "${rvm_path%/scripts/rvm}">/dev/null; pwd )"
+    rvm_prefix=$( dirname $rvm_path )
+  elif (( UID == 0 ))
+  then
+    if (( ${rvm_user_install_flag:-0} == 0 ))
+    then
+      rvm_prefix="/usr/local"
+      rvm_path="${rvm_prefix}/rvm"
+    else
+      rvm_prefix="$HOME"
+      rvm_path="${rvm_prefix}/.rvm"
+    fi
+  else
+    if [[ -d "$HOME/.rvm" && -s "$HOME/.rvm/scripts/rvm" ]]
+    then
+      rvm_prefix="$HOME"
+      rvm_path="${rvm_prefix}/.rvm"
+    else
+      rvm_prefix="/usr/local"
+      rvm_path="${rvm_prefix}/rvm"
+    fi
+  fi
+else
+  # remove trailing slashes, btw. %%/ <- does not work as expected
+  rvm_path="${rvm_path%%+(\/)}"
+fi
+
+# guess rvm_prefix if not set
+if [[ -z "${rvm_prefix}" ]]
+then
+  rvm_prefix=$( dirname $rvm_path )
+fi
+
+# duplication marker kkdfkgnjfndgjkndfjkgnkfjdgn
+case "$rvm_path" in
+  (/usr/local/rvm)         rvm_user_install_flag=0 ;;
+  ($HOME/*|/${USER// /_}*) rvm_user_install_flag=1 ;;
+  (*)                      rvm_user_install_flag=0 ;;
+esac
+
+export rvm_loaded_flag
+if [[ -n "${BASH_VERSION:-}" || -n "${ZSH_VERSION:-}" ]] &&
+  typeset -f rvm >/dev/null 2>&1
+then
+  rvm_loaded_flag=1
+else
+  rvm_loaded_flag=0
+fi
+
+if
+  (( ${rvm_loaded_flag:=0} == 0 )) || (( ${rvm_reload_flag:=0} == 1 ))
+then
+  if
+    [[ -n "${rvm_path}" && -d "$rvm_path" ]]
+  then
+    true ${rvm_scripts_path:="$rvm_path/scripts"}
+
+    if
+      [[ ! -f "$rvm_scripts_path/base" ]]
+    then
+      printf "%b" "WARNING:
+      Could not source '$rvm_scripts_path/base' as file does not exist.
+      RVM will likely not work as expected.\n"
+    elif
+      ! source "$rvm_scripts_path/base"
+    then
+      printf "%b" "WARNING:
+      Errors sourcing '$rvm_scripts_path/base'.
+      RVM will likely not work as expected.\n"
+    else
+      __rvm_ensure_is_a_function
+      __rvm_setup
+
+      export rvm_version
+      rvm_version="$(\cat "$rvm_path/VERSION") ($(\cat "$rvm_path/RELEASE" 2>/dev/null))"
+
+      alias rvm-restart="rvm_reload_flag=1 source '${rvm_scripts_path:-${rvm_path}/scripts}/rvm'"
+
+      # Try to load RVM ruby if none loaded yet
+      __path_to_ruby="$( builtin command -v ruby 2>/dev/null || true )"
+      if
+        [[ -z "${__path_to_ruby}" ]] ||
+        [[ "${__path_to_ruby}" != "${rvm_path}"* ]] ||
+        [[ "${__path_to_ruby}" == "${rvm_path}/bin/ruby" ]]
+      then
+        if [[ -s "$rvm_path/environments/default" ]]
+        then source "$rvm_path/environments/default"
+        fi
+        if
+          [[ ${rvm_project_rvmrc:-1} -gt 0 ]] &&
+          ! __function_on_stack __rvm_project_rvmrc
+        then
+          # Reload the rvmrc, use promptless ensuring shell processes does not
+          # prompt if .rvmrc trust value is not stored, revert to default on fail
+          if
+            rvm_current_rvmrc=""
+            rvm_project_rvmrc_default=1 rvm_promptless=1 __rvm_project_rvmrc
+          then
+            rvm_hook=after_cd
+            source "${rvm_scripts_path:-${rvm_path}/scripts}/hook"
+          fi
+        fi
+      fi
+      unset __path_to_ruby
+
+      # Makes sure rvm_bin_path is in PATH atleast once.
+      [[ ":${PATH}:" == *":${rvm_bin_path}:"* ]] || PATH="$PATH:${rvm_bin_path}"
+
+      if
+        (( ${rvm_reload_flag:=0} == 1 ))
+      then
+        [[ "${rvm_auto_reload_flag:-0}" == 2 ]] || printf "%b" 'RVM reloaded!\n'
+        # make sure we clean env on reload
+        __rvm_env_loaded=1
+        unset __rvm_project_rvmrc_lock
+      fi
+
+      rvm_loaded_flag=1
+      __rvm_teardown
+    fi
+  else
+    printf "%b" "\n\$rvm_path ($rvm_path) does not exist."
+  fi
+  unset rvm_prefix_needs_trailing_slash rvm_gems_cache_path rvm_gems_path rvm_project_rvmrc_default rvm_gemset_separator rvm_reload_flag
+fi

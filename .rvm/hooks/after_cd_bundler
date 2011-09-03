@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+\. "${rvm_path}/scripts/functions/hooks/binstubs"
+
+function add_binstubs_to_path()
+{
+  remove_binstubs_from_path "${2:-$1}"
+  export PATH="$1:$PATH"
+  export LAST_BUNDLER_BIN_PATH="$1"
+}
+
+BUNDLER_BIN_PATH=""
+
+# see BUNDLE_BIN is set in the current directories .bundle/config
+if
+  [[ -f .bundle/config && -r .bundle/config ]] &&
+  BUNDLER_BIN_PATH="$(\awk -F": " '$1=="BUNDLE_BIN"{print $2}' .bundle/config)" &&
+  [[ -n "$BUNDLER_BIN_PATH" ]]
+then
+  case "$BUNDLER_BIN_PATH" in
+    (/*)
+      true # it's all fine
+      ;;
+    (\~*)
+      BUNDLER_BIN_PATH="${BUNDLER_BIN_PATH/\~/$HOME}"
+      ;;
+    (*HOME*)
+      eval BUNDLER_BIN_PATH=\"${BUNDLER_BIN_PATH}\"
+      ;;
+    (*)
+      BUNDLER_BIN_PATH="$PWD/${BUNDLER_BIN_PATH}"
+      ;;
+  esac
+  if
+    [[ ":$PATH:" =~ ":$BUNDLER_BIN_PATH:" ]]
+  then
+    echo "The bundler binstubs directory is already on path."
+    add_binstubs_to_path "${BUNDLER_BIN_PATH}"
+  else
+    case "${BUNDLER_BIN_PATH}" in
+      (${PWD}*)
+        if
+          __rvm_ask_for \
+         "The bundler binstubs directory is in the current directory, which may be unsafe.
+Consider using rubygems-bundler instead => https://github.com/mpapis/rubygems-bundler
+Remove the BUNDLE_BIN line from .bundle/config to disable this prompt.
+Are you sure you want to add the bundler binstubs directory to the path?" \
+         'Yes'
+        then
+          add_binstubs_to_path "${BUNDLER_BIN_PATH}" "${LAST_BUNDLER_BIN_PATH}"
+        fi
+        ;;
+      (*)
+        add_binstubs_to_path "${BUNDLER_BIN_PATH}" "${LAST_BUNDLER_BIN_PATH}"
+        ;;
+    esac
+  fi
+else
+  # There is no BUNDLE_BIN setting
+  remove_binstubs_from_path "${LAST_BUNDLER_BIN_PATH}"
+fi

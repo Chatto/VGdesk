@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/base"
+
+usage()
+{
+  printf "%b" "
+  Usage:
+
+    rvm repair [option]
+
+  Options:
+    wrappers     - Repair wrappers
+    symlinks     - Repair symlinks
+    environments - Repair environments
+    archives     - Repair archives
+    gemsets      - Repair gemsets
+    all          - Repair all of the above
+
+"
+}
+
+repair_gemsets()
+{
+  typeset directory directories
+
+  rvm_log "Removing gemsets missing names or interpreters."
+
+  (
+    __rvm_cd "${rvm_gems_path:-"rvm_path/gems"}"
+
+    directories=(
+      $( __rvm_find . -mindepth 1 -maxdepth 1 -type d | __rvm_grep '@$' )
+      $( __rvm_find . -mindepth 1 -maxdepth 1 -type d | __rvm_grep '^./@')
+    )
+
+    for directory in "${directories[@]//.\/}"
+    do
+      __rvm_rm_rf "./$directory/"
+    done
+  )
+
+  rvm_log "Gemsets repaired."
+  return 0
+}
+
+repair_wrappers()
+{
+  rvm_log "Regenerating all wrappers..."
+  __rvm_read_lines ruby_names <(__rvm_list_gemset_strings)
+
+  for ruby_name in "${ruby_names[@]}"
+  do
+    __rvm_log_command \
+      "wrappers.regenerate.$ruby_name" \
+      "Regenerating wrappers for $ruby_name" \
+      __rvm_with $ruby_name run_gem_wrappers_regenerate ||
+    failed_wrappers+=( "$wrapper_ruby_name" )
+  done
+
+  if (( ${#failed_wrappers[@]} ))
+  then rvm_error "Wrappers regeneration failed for: ${failed_wrappers[*]}"
+  else rvm_log "Wrappers regenerated"
+  fi
+  return ${#failed_wrappers[@]}
+}
+
+# Removes stale symlinks in $rvm_bin_path, likely related to wrappers.
+repair_symlinks()
+{
+  rvm_log "Repairing symlinks..."
+  for executable_name in "${rvm_bin_path}"/*
+  do
+    if
+      [[ -L "$executable_name" && ! -e "$executable_name" && "$executable_name" != "${rvm_bin_path}/*" ]]
+    then
+      rvm_log "removing stale symlink from $(basename "$executable_name")"
+      \rm -f "$executable_name"
+    fi
+  done
+  rvm_log "Symlinks repaired"
+}
+
+# Regenerates each symlink file.
+repair_environments()
+{
+  typeset environment_name environments
+
+  rvm_log "Regenerating environments..."
+
+  environments=($(__rvm_cd "$rvm_environments_path" ; __rvm_find . -maxdepth 1 -mindepth 1 -type f))
+
+  for environment_name in "${environments[@]//.\/}"
+  do
+    [[ -L "$rvm_environments_path/$environment_name" ]] && continue
+    rvm_log "Regenerating environment file for '$environment_name'"
+
+    [[ -f "$rvm_environments_path/$environment_name" ]] && \rm -f "$rvm_environments_path/$environment_name"
+
+    (
+      source "$rvm_scripts_path/base"
+      __rvm_become "$environment_name"
+      __rvm_ensure_has_environment_files
+    )
+  done
+
+  rvm_log "Environments regenerated"
+}
+
+# Removes archives that have incorrect md5 sums.
+repair_archives()
+{
+  typeset archive_file archives stored_md5sum
+
+  rvm_log "Repairing archives..."
+
+  __rvm_read_lines archives <(
+    __rvm_cd "${rvm_archives_path}"
+    __rvm_find . -maxdepth 1 -mindepth 1 -type f
+  )
+
+  for archive_file in "${archives[@]//.\/}"
+  do
+    if
+      __rvm_checksum_read "$archive_file" &&
+      __rvm_checksum_any
+    then
+      __rvm_checksum_validate_file "${rvm_archives_path}/$archive_file" ||
+      {
+        rvm_log "Removing archive for '$archive_file' - Incorrect md5 checksum."
+        __rvm_rm_rf "${rvm_archives_path}/$archive_file"
+      }
+    fi
+  done
+
+  rvm_log "Archives repaired"
+  return 0
+}
+
+repair_all()
+{
+  repair_symlinks
+  repair_archives
+  repair_environments
+  repair_wrappers
+
+  return 0
+}
+
+args=($*)
+action="${args[$__array_start]}"
+args[$__array_start]=""
+args=(${args[@]})
+
+if [[ -z "$action" ]]
+then
+  usage
+  exit $?
+fi
+
+case "$action" in
+  all)          repair_all          ;;
+  symlinks)     repair_symlinks     ;;
+  gemsets)      repair_gemsets      ;;
+  environments) repair_environments ;;
+  archives)     repair_archives     ;;
+  wrappers)     repair_wrappers     ;;
+  help)         usage               ;;
+  *)            usage >&2 ; exit 1  ;;
+esac
+
+exit $?

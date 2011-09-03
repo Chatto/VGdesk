@@ -1,0 +1,372 @@
+#!/usr/bin/env bash
+
+__rvm_setup_compile_environment()
+{
+  typeset __type
+  typeset -a __types
+  __types=(
+    setup movable_early system_early requirements
+    movable parse_name system architectures gcc47plus bison
+    flags_docs flags_shared_static flags_threads compatibility_flag
+  )
+  for __type in "${__types[@]}"
+  do
+    rvm_debug "__rvm_setup_compile_environment_${__type} $1"
+    __rvm_setup_compile_environment_${__type} "$1" || return $?
+  done
+  rvm_debug "found compiler: $( __rvm_found_compiler )"
+}
+
+__rvm_setup_compile_environment_setup()
+{
+  if [[ -z "${rvm_autolibs_flag:-}" ]]
+  then rvm_autolibs_flag="$( "$rvm_scripts_path/db" "$rvm_user_path/db" "autolibs" )"
+  fi
+  rvm_debug "rvm_autolibs_flag=${rvm_autolibs_flag:=4}"
+  __rvm_autolibs_translate || return $?
+  [[ -n "${rvm_autolibs_flag_number:-}" ]] || return $?
+  export initially_selected_compiler="$( __rvm_selected_compiler )"
+  true
+}
+
+__rvm_setup_compile_environment_movable_early()
+{
+  (( ${rvm_movable_flag:-0} > 0 ))  || return 0
+  case "${_system_type}" in
+    (BSD)
+      rvm_error "It is not yet supported to build movable rubies on *BSD systems."
+      return 3
+      ;;
+    (Darwin)
+      case "$1" in
+        ruby-2*|ruby-head*) true ;;
+        (*)
+          rvm_error "Only MRI Ruby 2.0+ can be compiled movable with RVM on OSX"
+          return 2
+          ;;
+      esac
+      [[ "${rvm_autolibs_flag_runner}" == "smf" ]] ||
+      {
+        rvm_error "It is not yet supported to build movable rubies with '${rvm_autolibs_flag}',
+please install SMF and switch autolibs to it (make sure to follow any displayed instructions):
+
+    curl -L https://get.smf.sh | sh
+    rvm autolibs smf
+"
+        return 3
+      }
+      export rvm_static_flag=1
+      ;;
+    (*)
+      case "$1" in
+        ruby-1.9.3*|ruby-2*|ruby-head*) true ;;
+        (*)
+          rvm_error "Only MRI Ruby 1.9.3+ can be compiled movable with RVM"
+          return 2
+          ;;
+      esac
+      ;;
+  esac
+}
+
+__rvm_setup_compile_environment_system_early()
+{
+  if   is_a_function __rvm_setup_compile_environment_system_early_${_system_name}
+  then __rvm_setup_compile_environment_system_early_${_system_name} "$@" || return $?
+  fi
+}
+
+#
+# rvm_autolibs_flag
+# - 0 - disabled
+# - 1 - use libs, do not install
+# - 2 - use libs, fail if missing - default
+# - 3 - use libs, install if missing, fallback to 2 if brew not writable
+# - 4 - 3 + install package manager if not available
+#
+__rvm_setup_compile_environment_requirements()
+{
+  (( ${rvm_autolibs_flag_number} > 0 ))  || return 0
+  rvm_log "Checking requirements for ${rvm_autolibs_flag_runner}."
+  if
+    __rvm_requirements_run ${rvm_autolibs_flag_runner} "$@"
+  then
+    rvm_log "Requirements installation successful."
+  else
+    typeset __status=$?
+    rvm_error "Requirements installation failed with status: ${__status}."
+    return ${__status}
+  fi
+}
+
+__rvm_setup_compile_environment_parse_name()
+{
+  case "${rvm_ruby_name:-}" in
+    (clang) true ${CC:=clang} ;;
+  esac
+}
+
+__rvm_setup_compile_environment_movable()
+{
+  (( ${rvm_movable_flag:-0} > 0 ))  || return 0
+  case "${_system_type}" in
+    (Darwin)
+      rvm_configure_flags+=(
+        --enable-load-relative --with-static-linked-ext
+        --with-out-ext=dl/win32,fiddle/win32,tk/tkutil,tk,win32ole,-test-/win32/dln,-test-/win32/fd_setsize
+      )
+      rvm_patch_names+=( osx_static )
+      ;;
+    (*)
+      rvm_configure_flags+=( --enable-load-relative )
+      ;;
+  esac
+  rvm_configure_flags+=( --sysconfdir=/etc )
+  rvm_make_flags+=( -j3 )
+}
+
+__rvm_setup_compile_environment_bison()
+{
+  (( ${rvm_autolibs_flag_number} > 1 )) || return 0
+  case "$1" in
+    (ruby*|ree*|rbx*)
+      __rvm_check_for_bison ||
+      {
+        result=$?
+        rvm_error "Bison required but not found. Halting."
+        return $result
+      }
+      ;;
+  esac
+}
+
+__rvm_setup_compile_environment_architectures_osx_map()
+{
+  typeset _architecture
+  typeset _prefix="${1:-}"
+  typeset -a _architectures
+  _architectures=()
+  for _architecture in "${rvm_architectures[@]}"
+  do
+    case "${_architecture}" in
+      (32)  _architecture="i386"   ;;
+      (64)  _architecture="x86_64" ;;
+    esac
+    _architectures+=( "${_prefix}${_architecture}" )
+  done
+  rvm_architectures=( "${_architectures[@]}" )
+}
+
+__rvm_setup_compile_environment_architectures_ruby_osx()
+{
+  typeset -a _flags
+  _flags=(
+    MACOSX_DEPLOYMENT_TARGET="$( sw_vers -productVersion | __rvm_awk -F'.' '{print $1"."$2}' )"
+    CFLAGS="$1 -g -Os -pipe -no-cpp-precomp"
+    CCFLAGS="$1 -g -Os -pipe"
+    CXXFLAGS="$1 -g -Os -pipe"
+    LDFLAGS="$1 -bind_at_load"
+    LDSHARED="cc $1 -dynamiclib -undefined suppress -flat_namespace"
+  )
+  __rvm_update_configure_env "${_flags[@]}"
+  __rvm_array_contains "*osx-arch-fix*" "${rvm_patch_names[@]}" || rvm_patch_names+=( osx-arch-fix )
+}
+
+__rvm_setup_compile_environment_architectures_OSX()
+{
+  case "$1" in
+    ruby-1.9*|ruby-2*|ruby-head*)
+      # Ruby 1.9+ supports the easy way
+      __rvm_setup_compile_environment_architectures_osx_map
+      rvm_configure_flags+=( --with-arch="${rvm_architectures[*]}" )
+      ;;
+    ruby*|ree*)
+      __rvm_setup_compile_environment_architectures_osx_map "-arch "
+      __rvm_setup_compile_environment_architectures_ruby_osx "${rvm_architectures[*]}"
+      ;;
+    (*)
+      __rvm_setup_compile_environment_architectures_osx_map "-arch "
+      __rvm_update_configure_env_arch "${rvm_architectures[*]}"
+      rvm_configure_flags+=( --disable-dependency-tracking )
+      ;;
+  esac
+}
+
+__rvm_setup_compile_environment_architectures_Other()
+{
+  (( ${#rvm_architectures[@]} == 1 )) ||
+  {
+    rvm_error "Only OSX supports fat binaries, any other system supports only single architecture, please be more specific."
+    return 1
+  }
+  typeset _architecture
+  case  "${rvm_architectures[*]}" in
+    (i386)   _architecture=( -m32 ) ;;
+    (x86_64) _architecture=( -m64 ) ;;
+    (32|64)  _architecture=( -m${rvm_architectures[*]}      ) ;;
+    (*)      _architecture=( -march=${rvm_architectures[*]} ) ;;
+  esac
+  __rvm_update_configure_env_arch ${_architecture}
+}
+
+__rvm_setup_compile_environment_architectures()
+{
+  rvm_debug "rvm_architectures(${#rvm_architectures[@]}):${rvm_architectures[*]}."
+  (( ${#rvm_architectures[@]} > 0 )) || return 0
+  if   is_a_function __rvm_setup_compile_environment_architectures_${_system_name}
+  then __rvm_setup_compile_environment_architectures_${_system_name} "$@" || return $?
+  else __rvm_setup_compile_environment_architectures_Other           "$@" || return $?
+  fi
+}
+
+__rvm_setup_compile_environment_gcc47plus()
+{
+  __rvm_compiler_version_or_higher "4.7"      || return 0
+  __rvm_string_match "$1" "ruby-1.8.*" "ree*" || return 0
+
+  # -g -O2 from 1.8.7-p370 is not enough, need all the flags to fix it
+  __rvm_update_configure_env CFLAGS="-O2 -fno-tree-dce -fno-optimize-sibling-calls"
+}
+
+__rvm_setup_compile_environment_system()
+{
+  if   is_a_function __rvm_setup_compile_environment_system_${_system_name}
+  then __rvm_setup_compile_environment_system_${_system_name} "$@" || return $?
+  elif is_a_function __rvm_setup_compile_environment_system_${_system_type}
+  then __rvm_setup_compile_environment_system_${_system_type} "$@" || return $?
+  fi
+}
+
+__rvm_setup_compile_environment_flags_docs()
+{
+  # disable docs, see https://github.com/wayneeseguin/rvm/issues/2656
+  # enable docs on OSX by default (that's development system)
+  # if [[ "Darwin" == "${_system_type}" ]]
+  # then : rvm_docs_flag=${rvm_docs_flag:=1}
+  # fi
+
+  # handle docs flag, docs are enabled by default, lets disable this
+  (( ${rvm_docs_flag:-0} == 1 )) ||
+  {
+    case "$1" in
+      (ruby*|ree*) rvm_configure_flags+=( --disable-install-doc ) ;;
+    esac
+  }
+  true # OSX --trace FIX
+}
+
+__rvm_setup_compile_environment_flags_static_darwin()
+{
+  if
+    [[ "${_system_type}" == "Darwin" ]]
+  then
+    __rvm_update_configure_env CFLAGS="-fPIC -mmacosx-version-min=10.6" LDFLAGS="-fPIC" "$@"
+    rvm_configure_flags+=( --with-arch=x86_64 )
+  fi
+}
+
+__rvm_setup_compile_environment_flags_shared_static()
+{
+  if
+    (( ${rvm_static_flag:-0} == 1 ))
+  then
+    case "$1" in
+      (openssl*)
+        rvm_configure_flags+=( no-shared )
+        __rvm_setup_compile_environment_flags_static_darwin
+        ;;
+      (ncurses*)
+        rvm_configure_flags+=( --without-shared )
+        __rvm_setup_compile_environment_flags_static_darwin
+        ;;
+      (rbx*|rubinius*|jruby*)
+        true # no flag yet for rbx, does not apply to jruby!
+        ;;
+      (*)
+        rvm_configure_flags+=( --disable-shared )
+        __rvm_setup_compile_environment_flags_static_darwin LDFLAGS="-Bstatic"
+        ;;
+    esac
+  else
+    case "$1" in
+      (openssl*)
+        rvm_configure_flags+=( shared )
+        ;;
+      (readline*)
+        rvm_configure_flags+=( --disable-static --enable-shared )
+        ;;
+      (ncurses*)
+        rvm_configure_flags+=( --with-shared )
+        ;;
+      (rbx*|rubinius*|jruby*)
+        true # no flag yet for rbx, does not apply to jruby!
+        ;;
+      (*)
+        rvm_configure_flags+=( --enable-shared )
+        ;;
+    esac
+  fi
+  true # OSX --trace FIX
+}
+
+__rvm_detect_max_threads()
+{
+  case "${_system_name}" in
+    (Darwin|FreeBSD|DragonFly)
+      if
+        __rvm_which sysctl >/dev/null
+      then
+        sysctl -n hw.ncpu
+      elif
+        [[ -x /usr/sbin/sysctl ]]
+      then
+        /usr/sbin/sysctl -n hw.ncpu
+      elif
+        [[ -x /sbin/sysctl ]]
+      then
+        /sbin/sysctl -n hw.ncpu
+      else
+        echo 1
+      fi
+      ;;
+    (*)
+      \cat /proc/cpuinfo 2>/dev/null | (grep vendor_id || echo 'one';) | wc -l
+      ;;
+  esac
+}
+
+__rvm_setup_compile_environment_flags_threads()
+{
+  case "$1" in
+    (openssl*)
+      # Don't use -j option for make OpenSSL
+      __rvm_remove_from_array rvm_make_flags "-j*" "${rvm_make_flags[@]}"
+      rvm_make_flags+=( -j1 )
+      ;;
+    (*)
+      if [[ "${_system_name}" == "FreeBSD" || "${_system_name}" == "DragonFly" ]]
+      then rvm_make_flags+=( -B )
+      fi
+      [[ " ${rvm_make_flags[*]}" =~ " -j" ]] || rvm_make_flags+=( -j$(__rvm_detect_max_threads) )
+      ;;
+  esac
+}
+
+__rvm_setup_compile_environment_compatibility_flag()
+{
+  case "$1" in
+    (jruby*)
+      for mode in 2.1 2.0 1.9 1.8
+      do
+        eval "
+          if
+            [[ \${rvm_${mode//./}_flag:-0} == 1 ]]
+          then
+            rvm_configure_flags+=( -Djruby.default.ruby.version=${mode} )
+            break
+          fi
+        "
+      done
+      ;;
+  esac
+}

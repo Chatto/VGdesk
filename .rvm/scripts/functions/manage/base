@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/functions/manage/base_fetch"
+source "$rvm_scripts_path/functions/manage/base_install"
+source "$rvm_scripts_path/functions/manage/base_install_patches"
+source "$rvm_scripts_path/functions/manage/base_remove"
+
+__rvm_uninstall_ruby()
+{
+  __rvm_remove_ruby uninstall
+}
+
+__rvm_reinstall_ruby()
+{
+  export pristine_gems_filter="! gem.extensions.empty?"
+  __rvm_remove_ruby reinstall &&
+  __rvm_install_ruby "$@" &&
+  __rvm_gemset_pristine_all "$rvm_ruby_string"
+}
+
+__rvm_gemset_pristine_all()
+{
+  if (( ${rvm_skip_pristine_flag:-0} ))
+  then return 0
+  fi
+  typeset -a destination_gemsets
+  typeset destination_gemset
+  __rvm_read_lines destination_gemsets <(
+    __rvm_list_gemset_strings | __rvm_grep -E "^$1(@.*)?$"
+  )
+  for destination_gemset in "${destination_gemsets[@]}"
+  do __rvm_gemset_pristine "$destination_gemset"
+  done
+}
+
+__rvm_manage_rubies()
+{
+  typeset manage_result bin_line current_ruby_string
+  typeset -a rubies
+  rubies=()
+
+  rvm_gemset_name=""
+  rvm_ruby_selected_flag=0
+  rvm_ruby_gem_home="${rvm_ruby_gem_home%%${rvm_gemset_separator:-"@"}*}"
+  rvm_ruby_string="${rvm_ruby_string%%${rvm_gemset_separator:-"@"}*}"
+
+  # Given list of ruby strings.
+  if
+    __rvm_string_match "${rubies_string:-}" "old:*"
+  then
+    typeset _older_then
+    _older_then=${rubies_string#old:}
+    if
+      [[ -z "${_older_then}" ]]
+    then
+      # minified https://github.com/mpapis/home_dotfiles/blob/master/bin/git-summary#L5-L50
+      case "${_system_type}" in
+        (Darwin) _older_then="$( __rvm_date -j -v6m           +%F )" ;;
+        (*)      _older_then="$( __rvm_date --date="-6months" +%F )" ;;
+      esac
+    fi
+    __rvm_read_lines rubies <(
+      __rvm_cd "$rvm_rubies_path"
+      # find on bsd does not have -not, we need to use \!
+      __rvm_find . -maxdepth 1 -mindepth 1 -type d \! -newermt $_older_then 2>/dev/null | cut -c 3-
+    )
+    (( ${#rubies[*]} )) ||
+    {
+      rvm_warn "No rubies older then ${_older_then}."
+      return 1
+    }
+    __rvm_ask_for "Are you SURE you wish to '$action' ${rubies[*]}?" yes || return $?
+  elif
+    [[ -n "${rubies_string:-}" && "${rubies_string}" != "all" ]]
+  then
+    if
+      [[ "${rubies_string}" == *,* || -z "${rvm_ruby_string:-}" ]]
+    then
+      __rvm_custom_separated_array rubies , "${rubies_string}"
+    else
+      rubies=( "${rvm_ruby_string}" )
+    fi
+  elif
+    [[ "$action" == "install" ]]
+  then
+    rvm_error 'Really? '"$action"', all? See "rvm list known" and limit the selection to something more sane please :)'
+    return 1
+  elif
+    [[ -z "${rubies_string}" ]]
+  then
+    rvm_error 'Really? '"$action"', all? See "rvm list" and limit the selection to something more sane please :)'
+    return 1
+  else
+    # explicit all && not install
+    if
+      (( ${rvm_force_flag:-0} == 0 )) &&
+      [[ "$action" == "reinstall" || "$action" == "remove" || "$action" == "uninstall" ]]
+    then
+      __rvm_ask_for "Are you SURE you wish to '$action' all rubies?" yes || return $?
+    fi
+    __rvm_read_lines rubies <(
+      __rvm_cd "$rvm_rubies_path"
+      __rvm_find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | cut -c 3-
+    )
+  fi
+
+  for rvm_ruby_string in "${rubies[@]}"
+  do
+    rvm_debug "${rvm_ruby_string} - $action"
+    current_ruby_string="$rvm_ruby_string"
+    if
+      # in () so it does not mess with env. variables
+      (
+        rvm_hook="before_install"
+        source "$rvm_scripts_path/hook"
+        __rvm_${action}_ruby
+      )
+    then
+      if [[ "$action" == "install" ]]
+      then __rvm_record_install "$current_ruby_string"
+      fi
+    else
+      : manage_result:${manage_result:=$?}
+    fi
+  done
+  return "${manage_result:-0}"
+}

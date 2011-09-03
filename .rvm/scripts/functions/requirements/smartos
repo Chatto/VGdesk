@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+requirements_smartos_lib_installed()
+{
+  pkgin list | __rvm_grep "^$1-[0-9]" >/dev/null 2>&1|| return $?
+}
+
+requirements_smartos_libs_install()
+{
+  __rvm_try_sudo pkgin -y install "$@" || return $?
+}
+
+requirements_smartos_update_system()
+{
+  __rvm_try_sudo pkgin -y full-upgrade || return $?
+}
+
+requirements_smartos_define()
+{
+  case "$1" in
+    (rvm)
+      requirements_check bash curl scmgit-base patch
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        requirements_check jdk scmgit-base
+        if is_jruby_post17 "$1"
+        then requirements_check_custom_after mvn=maven
+        else requirements_check apache-ant
+        fi
+      else
+        requirements_check jdk
+      fi
+      ;;
+    (ir*)
+      requirements_check mono
+      ;;
+    (opal)
+      requirements_check node-devel
+      ;;
+    (*-head)
+      requirements_check coreutils gcc47 gmake readline sqlite3 ncurses libyaml autoconf automake libtool scmgit-base
+      __rvm_update_configure_opt_dir "$1" "/opt/local"
+      ;;
+    (*)
+      requirements_check coreutils gcc47 gmake readline sqlite3 ncurses libyaml autoconf automake libtool
+      __rvm_update_configure_opt_dir "$1" "/opt/local"
+      ;;
+  esac
+}

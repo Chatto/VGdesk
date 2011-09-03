@@ -1,0 +1,16 @@
+[2014-04-11 07:59:18] __rvm_post_configure_ruby
+__rvm_post_configure_ruby () 
+{ 
+    typeset option;
+    if (( ${rvm_static_flag:-0} == 1 )); then
+        for option in 'option nodynamic' openssl psych zlib readline;
+        do
+            __rvm_update_ext_setup ${option};
+        done;
+    fi
+}
+current path: /home/sekai_cms/.rvm/src/ruby-2.1.1
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin
+command(1): __rvm_post_configure_ruby
+++ /scripts/functions/manage/ruby : __rvm_post_configure_ruby()  122 > typeset option
+++ /scripts/functions/manage/ruby : __rvm_post_configure_ruby()  124 > ((  0 == 1  ))

@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+
+unset rvm_default_flag rvm_wrapper_name
+
+source "$rvm_scripts_path/base"
+source "$rvm_scripts_path/functions/alias"
+
+usage() {
+  printf "%b" "
+
+  Usage:
+
+    rvm alias [action] [arguments]
+
+  Examples:
+
+    rvm alias create [alias_name] [ruby]
+    rvm alias delete [alias_name]
+    rvm alias show [alias_name]
+    rvm alias list
+
+"
+}
+
+alias_create_exceute()
+{
+  for _path in "$rvm_rubies_path" "$rvm_environments_path" "$rvm_wrappers_path"
+  do
+    if [[ -L "$_path/$alias_name" ]]
+    then \rm -fv "$_path/$alias_name" || return $?
+    fi
+    \ln -fsv "$_path/$rvm_ruby_string" "$_path/$alias_name" || return $?
+  done
+
+  __rvm_db_ "$rvm_path/config/alias" "$alias_name" "$rvm_ruby_string"
+}
+
+alias_create()
+{
+  alias_name="${alias_name:-""}"
+  rvm_ruby_string="$rvm_environment_identifier"
+  rvm_expanding_aliases=1
+  __rvm_become
+  unset rvm_expanding_aliases
+
+  if
+    [[ -z "${rvm_environment_identifier:-""}" || -z "$rvm_ruby_string" || -z "$alias_name" ]]
+  then
+    rvm_error "usage: 'rvm alias [alias_name] [ruby_string]'"
+    return 1
+  elif
+    [[ ! -L "$rvm_rubies_path/$alias_name" && -d "$rvm_rubies_path/$alias_name" ]]
+  then
+    rvm_error "$alias_name is a full ruby name and can not be used as alias name."
+    return 2
+  else
+    __rvm_log_command "alias_create" \
+      "Creating alias $alias_name for $rvm_ruby_string" \
+      alias_create_exceute
+  fi
+}
+
+alias_list_show()
+{
+  __rvm_cd "$rvm_rubies_path"
+  __rvm_find . -maxdepth 1 -mindepth 1 -type l | __rvm_sed -e 's#.*/##'
+}
+
+alias_list() {
+  case "${alias_name}" in
+    (names)
+      alias_list_show # just show it
+      ;;
+    (*)
+      typeset -a items
+      __rvm_read_lines items <(alias_list_show)
+      typeset item
+      for item in "${items[@]}"
+      do echo "$item => $("$rvm_scripts_path"/db "$rvm_path/config/alias" "$item")"
+      done
+      ;;
+  esac
+}
+
+alias_search_by_target() {
+  typeset item items target search
+  search="${alias_name}@${gemset_name}"
+
+  items=($(__rvm_cd "$rvm_rubies_path" ; __rvm_find . -maxdepth 1 -mindepth 1 -type l | __rvm_sed -e 's#./##'))
+
+  for item in "${items[@]}"
+  do
+    target=$("$rvm_scripts_path"/db "$rvm_path/config/alias" "$(basename "$item")")
+    if [[ "${search}" == "${target}" ]]
+    then
+      echo "$(basename "$item")"
+    fi
+  done
+}
+
+args=($*)
+action="${args[0]:-""}"
+alias_name="${args[1]:-""}"
+rvm_environment_identifier="${args[2]:-""}"
+shift 3
+args="$@"
+result=0
+
+if
+  [[ "$alias_name" == *"/"* ]]
+then
+  printf "%b" "Can not use path separator '/' in alias names."
+  exit 1
+fi
+
+[[ -f "$rvm_path/config/alias" ]] || touch "$rvm_path/config/alias"
+
+if
+  [[ "$alias_name" == *"${rvm_gemset_separator:-"@"}"* ]]
+then
+  gemset_name="${alias_name/*${rvm_gemset_separator:-"@"}/}"
+  alias_name="${alias_name/${rvm_gemset_separator:-"@"}*/}"
+else
+  gemset_name=""
+fi
+
+case "$action" in
+  delete|create|list|show|search_by_target)
+    alias_${action}
+    ;;
+  help|usage)
+    usage
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
+
+exit $?

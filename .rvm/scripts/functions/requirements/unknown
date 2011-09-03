@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+requirements_unknown_binaries()
+{
+  while
+    (( $# ))
+  do
+    __rvm_which "$1" >/dev/null || missing_libs+=( "$1" )
+    shift
+  done
+}
+
+requirements_unknown_run()
+{
+  case "$1" in
+    (update-system)
+      echo "Always update your system first!"
+      ;;
+    (rvm)
+      requirements_unknown_binaries bash curl patch
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        requirements_unknown_binaries git
+        if is_jruby_post17 "$1"
+        then requirements_unknown_binaries mvn
+        else requirements_unknown_binaries ant
+        fi
+      fi
+      requirements_unknown_binaries java
+      ;;
+    (ir*)
+      requirements_unknown_binaries mono
+      ;;
+    (opal)
+      requirements_unknown_binaries nodejs npm
+      ;;
+    (*-head)
+      requirements_unknown_binaries openssl sqlite3 libtool autoconf automake bison pkg-config git
+      missing_libs+=( build-essential libreadline zlib1g libyaml libc6 libgdbm ncurses )
+      ;;
+    (*)
+      requirements_unknown_binaries openssl sqlite3 libtool autoconf automake bison pkg-config git
+      missing_libs+=( build-essential libreadline zlib1g libyaml libc6 libgdbm ncurses )
+      ;;
+  esac
+}
+
+requirements_unknown_wait_key()
+{
+  rvm_is_a_shell_function no_warning ||
+  {
+    rvm_error "
+RVM was not able to detect your system type and does not know how to load extra library paths for your system (if it's needed), read:
+
+    rvm help autolibs
+
+for details how to disable this message.
+"
+    return 1
+  }
+  rvm_log "press any key to continue"
+  typeset _read_char_flag anykey
+  [[ -n "${ZSH_VERSION:-}" ]] && _read_char_flag=k || _read_char_flag=n
+  builtin read -${_read_char_flag} 1 -s -r anykey
+}
+
+requirements_unknown_update_system()
+{
+  echo "Always update your system first!"
+}
+
+requirements_unknown_define()
+{
+  typeset __reqirement
+  typeset -a missing_libs
+  missing_libs=()
+  for __reqirement
+  do requirements_unknown_run "${__reqirement}"
+  done
+  echo "Install: ${missing_libs[*]}"
+  requirements_unknown_wait_key || return $?
+}

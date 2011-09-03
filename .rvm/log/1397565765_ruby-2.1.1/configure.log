@@ -1,0 +1,6 @@
+[2014-04-15 07:42:47] ./configure
+current path: /home/sekai_cms/.rvm/src/ruby-2.1.1
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/home/sekai_cms/.rvm/bin
+command(7): ./configure --prefix=/home/sekai_cms/.rvm/rubies/ruby-2.1.1 --with-readline-dir=/home/sekai_cms/.rvm/usr --with-opt-dir=/usr/local --disable-dtrace --disable-install-doc --enable-shared
+./configure: cannot create config.log: Permission denied
+./configure: cannot create config.log: Permission denied

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/functions/requirements/gentoo_paludis"
+source "$rvm_scripts_path/functions/requirements/gentoo_pkgcore"
+source "$rvm_scripts_path/functions/requirements/gentoo_portage"
+
+requirements_gentoo_before()
+{
+  typeset __iterator
+  for __iterator in gentoo_portage gentoo_paludis gentoo_pkgcore
+  do
+    if
+      requirements_find_${__iterator}
+    then
+      __lib_type=${__iterator}
+      return 0
+    fi
+  done
+
+  # fallback
+  __lib_type=gentoo_portage
+}
+
+requirements_gentoo_define()
+{
+  case "$1" in
+    (rvm)
+      requirements_check net-misc/curl sys-devel/patch app-shells/bash
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        requirements_check virtual/jdk dev-vcs/git
+        if is_jruby_post17 "$1"
+        then __rvm_which mvn >/dev/null || requirements_check dev-java/maven-bin
+        else __rvm_which ant >/dev/null || requirements_check dev-java/ant-core
+        fi
+      else
+        requirements_check virtual/jre
+      fi
+      ;;
+    (ir*)
+      requirements_check dev-lang/mono
+      ;;
+    (opal)
+      requirements_check net-libs/nodejs
+      ;;
+    (*-head)
+      requirements_gentoo_define "${1%-head}"
+      requirements_check dev-vcs/git
+      ;;
+    (*)
+      requirements_check virtual/libiconv sys-libs/readline sys-libs/zlib dev-libs/openssl net-misc/curl dev-libs/libyaml dev-db/sqlite sys-devel/libtool sys-devel/gcc sys-devel/autoconf sys-devel/automake sys-devel/bison sys-devel/m4
+      ;;
+  esac
+}

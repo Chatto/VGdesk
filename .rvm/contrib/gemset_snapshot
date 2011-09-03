@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+printf "\nBeginning snapshot of the current environment gem list into snapshot.gems\n"
+
+file_name="snapshot.gems"
+
+gems=($(gem list | sed 's#[\(|\)]##g' | sed 's#, #,#g' | \tr ' ' ';'))
+
+for gem in "${gems[@]}" ; do
+
+  name="${gem%%;*}"
+
+  versions=${gem#*;}
+  versions=(${versions/,/ })
+
+  for version in "${versions[@]}" ; do
+
+    echo "$name -v$version" >> "$file_name"
+
+  done ; unset version versions
+
+done ; unset file_name
+
+printf "\nCompleted snapshot of the current environment gem list into snapshot.gems\n"
+
+exit $?

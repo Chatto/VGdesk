@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+
+rvm_base_except="selector"
+source "$rvm_scripts_path/base"
+
+chmod_unless_link()
+{
+  if [[ -e "$1" && ! -L "$1" ]]
+  then chmod -R u+w "$1" || return $?
+  fi
+}
+
+remove_or_log()
+{
+  (( rvm_verbose_flag == 0 )) || rvm_log " - removing - $1"
+  chmod_unless_link "$1" &&
+  __rvm_rm_rf "$1" ||
+  {
+    : $(( failed_counter+=1 ))
+    rvm_error " - failed - $1"
+  }
+}
+
+cleanup_single()
+{
+  typeset current_path entry
+  current_path="${rvm_path}/${1}"
+
+  if
+    [[ -n "$current_path" && -d "$current_path" && "$current_path" != "/" ]]
+  then
+    for entry in "$current_path"/*
+    do
+      case $entry in
+        (*\*) continue ;; # skip empty dirs
+      esac
+      remove_or_log "$entry"
+    done
+  fi
+}
+
+cleanup_gemsets()
+{
+  typeset current_path ruby_path
+
+  for current_path in "${rvm_path}"/gems/*
+  do
+    case "${current_path##*/}" in
+      (\*)    continue ;; # skip no gemsets
+      (cache) continue ;; # skip cache dir
+    esac
+    ruby_path="${current_path%@*}"
+    ruby_path="${ruby_path//\/gems\///rubies/}"
+    [[ -d "${ruby_path}" ]] ||
+      remove_or_log "$current_path"
+  done
+  typeset __found __search_path_gems __search_path_rubies gemset_name __need_a_cleanup=0
+  for __found in "$rvm_path"/environments/*  "$rvm_path"/wrappers/*
+  do
+    gemset_name="${__found##*/}"
+    __search_path_gems="$rvm_path/gems/${gemset_name}"
+    __search_path_rubies="$rvm_path/rubies/${gemset_name}"
+    if
+      [[ -e "$__found" &&
+        "$gemset_name" != default &&
+        ! -e "$__search_path_gems" &&
+        ! -e "$__search_path_rubies"
+      ]]
+    then
+      remove_or_log "$__found"
+    fi
+  done
+  (( __need_a_cleanup )) ||
+  for __found in "$rvm_path"/gems/*
+  do
+    gemset_name="${__found##*/}"
+    gemset_name="${gemset_name%@*}"
+    __search_path_rubies="$rvm_path/rubies/${gemset_name}"
+    if
+      [[ -e "$__found" &&
+        "$gemset_name" != cache &&
+        ! -e "$__search_path_rubies"
+      ]]
+    then
+      remove_or_log "$__found"
+    fi
+  done
+}
+
+cleanup_links()
+{
+  typeset current_link
+  typeset -a all_links
+
+  __rvm_read_lines all_links <(
+    __rvm_find "${rvm_path}"/{environments,wrappers,gems,bin} -type l
+  )
+  for current_link in "${all_links[@]}"
+  do
+    if
+      [[ -L "${current_link}" && ! -s "${current_link}" ]]
+    then
+      remove_or_log "${current_link}"
+    fi
+  done
+}
+
+cleanup()
+{
+  while (( $# ))
+  do
+    rvm_log "Cleaning up rvm $1"
+    case "$1" in
+      (gemsets|links)
+        cleanup_$1
+        ;;
+      (logs)
+        cleanup_single log
+        ;;
+      (sources)
+        cleanup_single src
+        ;;
+      (*)
+        cleanup_single $1
+        ;;
+    esac
+    shift
+  done
+}
+
+failed_counter=0
+case "$1" in
+  archives|repos|sources|tmp|gemsets|logs|links)
+    cleanup "$1"
+    ;;
+  all)
+    cleanup archives repos src log tmp gemsets links
+    ;;
+  help)
+    rvm_help cleanup
+    ;;
+  *)
+    rvm_help cleanup
+    exit 1
+    ;;
+esac
+
+if (( failed_counter ))
+then rvm_warn "Cleanup failed for $failed_counter"
+else rvm_log "Cleanup done."
+fi

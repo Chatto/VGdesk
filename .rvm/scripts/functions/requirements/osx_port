@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+
+requirements_find_osx_port()
+{
+  if # find macports in PATH
+    __rvm_which port >/dev/null 2>&1
+  then
+    return 0
+  else # find macports out of PATH and link to rvm/bin
+    typeset __binary
+    for __binary in ~/opt/local/bin/port ~/.opt/local/bin/port /usr/local/bin/port /opt/local/bin/port
+    do
+      if
+        [[ -f "${__binary}" && -s "${__binary}" && -x "${__binary}" ]]
+      then
+        PATH="$PATH:${__binary%/*}"
+        return 0
+      fi
+    done
+    return 1
+  fi
+}
+
+requirements_osx_port_version_list()
+{
+  if __rvm_which $1 >/dev/null
+  then $1 --version 2>/dev/null | __rvm_sed -n -e '1{s/^.* //; p;}'
+  fi
+  port -q installed $1* 2>/dev/null | __rvm_sed -e 's/.* @//' -e 's/_.*//' -e 's/ .*//'
+}
+
+requirements_osx_port_lib_available()
+{
+  port info $1 >/dev/null 2>&1 || return $?
+}
+
+requirements_osx_port_lib_installed()
+{
+  port -q installed $1 | __rvm_grep active >/dev/null || return $? ;
+}
+
+requirements_osx_port_libs_install()
+{
+  __rvm_try_sudo port install "$@" ||
+  {
+    typeset ret=$?
+    # TODO: offer more help!
+    rvm_warn "There were package installation errors, make sure to read the log."
+    return $ret
+  }
+}
+
+requirements_osx_port_before()
+{
+  requirements_osx_port_ensure_port_available || return $?
+
+  typeset -ax port_libs
+}
+
+requirements_osx_port_libs_default()
+{
+  port_libs=(
+    autoconf automake libtool pkgconfig
+  )
+  case "$1" in
+    (*-head) __rvm_which git >/dev/null || port_libs+=( git )
+      ;;
+  esac
+  __rvm_selected_compiler >/dev/null ||
+  case "$1" in
+    (ruby-1*|ree*)
+      if __rvm_compiler_is_llvm # install gcc-4.2 only if not yet available
+      then port_libs+=( apple-gcc42 )
+      fi
+      ;;
+  esac
+  port_libs+=(
+    libiconv libyaml libffi readline libksba openssl sqlite3 zlib gdbm
+  )
+  if
+    requirements_osx_port_lib_installed ncursesw
+  then
+    rvm_error "\
+Error! ncursesw was replaced by ncurses a long time ago, please uninstall 'ncursesw',
+         for more details check http://comments.gmane.org/gmane.os.apple.macports.user/28039"
+    return 1
+  else
+    port_libs+=( ncurses  )
+  fi
+  requirements_check_fallback curl-ca-bundle certsync || return $?
+  requirements_check "${port_libs[@]}" || return $?
+}
+
+requirements_osx_port_update_system()
+{
+  __rvm_try_sudo port -dv selfupdate || return $?
+}
+
+requirements_osx_port_define()
+{
+  case "$1" in
+    (rvm)
+      true
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        __rvm_which git >/dev/null || requirements_check git
+        if is_jruby_post17 "$1"
+        then requirements_check_custom_after mvn=maven
+        fi
+      fi
+      requiremnts_osx_java_fail  || return $?
+      ;;
+    (ir*)
+      __rvm_which mono >/dev/null 2>&1 || return $?
+      ;;
+    (opal)
+      requirements_osx_port_libs_ensure node
+      ;;
+    (ruby*head)
+      __rvm_which git >/dev/null || requirements_check git
+      requirements_osx_port_libs_default "$1"
+      requirements_version_minimal autoconf 2.67
+      ;;
+    (*-head)
+      __rvm_which git >/dev/null || requirements_check git
+      requirements_osx_port_libs_default "$1" || return $?
+      ;;
+    (*)
+      requirements_osx_port_libs_default "$1" || return $?
+      ;;
+  esac
+}
+
+requirements_osx_port_after()
+{
+  typeset port_root
+  port_root="$( __rvm_which port 2>/dev/null )" && # get    binary and
+  [[ -n "${port_root}" && -x "${port_root}"  ]] && # verify binary and
+  __rvm_readlink_deep port_root                    # resolve any links to point to the final target
+  [[ -n "${port_root}" && -x "${port_root}"  ]] && # verify binary and
+  port_root="${port_root%%*(/)bin*(/)port}"        # get    root
+  [[ -n "${port_root}" && -d "${port_root}" ]]  || # verify root   or
+  port_root="/opt/local"                           # fallback to default
+
+  __rvm_update_configure_opt_dir "$1" "${port_root}" || return $?
+
+  __rvm_selected_compiler >/dev/null ||
+  case "${port_libs[*]}" in
+    (apple-gcc42) export CC=gcc-apple-4.2 ;;
+  esac
+
+  unset port_libs
+
+  __rvm_add_to_path prepend "${port_root}/bin"
+  rvm_debug "PATH=$PATH"
+
+  case "$1" in
+    (jruby*) true ;;
+    (*) requirements_osx_port_after_update_certs_openssl ;;
+  esac
+}
+
+requirements_osx_port_after_update_certs_openssl()
+{
+  requirements_osx_update_openssl_cert "${port_root}/bin/openssl" || return $?
+}
+
+requirements_osx_port_install_port()
+{
+  typeset macports_version
+  macports_version="$(
+    __rvm_curl https://distfiles.macports.org/MacPorts/ |
+    __rvm_grep -Eo "<a href=\"MacPorts-[[:digit:]\.]+.tar.bz2\">" |
+    __rvm_awk -F'"' '{print $2}' |
+    __rvm_version_sort |
+    __rvm_tail -n 1
+  )" #'
+  macports_version="${macports_version%.tar.bz2}"
+  : macports_version:${macports_version:=MacPorts-2.1.3}
+  mkdir "${rvm_src_path}/${macports_version}"
+  cd    "${rvm_src_path}/${macports_version}"
+  __rvm_curl "https://distfiles.macports.org/MacPorts/${macports_version}.tar.bz2" | tar -xj --strip 1
+  __rvm_check_pipestatus ${PIPESTATUS[@]} ${pipestatus[@]} || return $?
+  ./configure &&
+  __rvm_make &&
+  # plain make is required for sudo
+  __rvm_try_sudo make install || return $?
+  true # for OSX
+}
+
+requirements_osx_port_ensure_port_available()
+{
+  __rvm_which port >/dev/null ||
+  {
+    __rvm_which make > /dev/null &&
+    {
+      __rvm_which clang > /dev/null ||
+      __rvm_which gcc-4.2 > /dev/null
+    } ||
+    {
+      rvm_error "Can not find compiler and 'make' tool - make sure Xcode and/or Command Line Tools are installed."
+      return 11
+    }
+    rvm_requiremnts_fail_or_run_action 2 \
+      "Requested installation with macports libs, but macports is not available." \
+      __rvm_log_command port_install "Installing macports" requirements_osx_port_install_port ||
+      return $?
+
+    # make sure the new installation is in PATH
+    __rvm_which port >/dev/null || PATH="$PATH:/opt/local/bin"
+  }
+  true # for OSX
+}

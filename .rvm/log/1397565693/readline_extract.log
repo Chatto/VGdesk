@@ -1,0 +1,55 @@
+[2014-04-15 07:41:33] __rvm_package_extract
+__rvm_package_extract () 
+{ 
+    rvm_debug __rvm_package_extract:$#: "$@";
+    typeset __tempdir __path __file __return;
+    __return=0;
+    __tempdir="$( TMPDIR="${rvm_tmp_path}" mktemp -d -t rvm-tmp.XXXXXXXXX )";
+    __rvm_package_extract_run "$1" "$__tempdir" || __return=$?;
+    if (( __return == 0 )); then
+        for __path in "$__tempdir"/*;
+        do
+            __file="${__path##*/}";
+            if [[ -n "${__file}" && -e "$2/${__file}" ]]; then
+                \rm -rf "$2/${__file}" || __return=$?;
+            fi;
+            \mv -f "${__path}" "$2/" || __return=$?;
+        done;
+    fi;
+    if [[ -n "$__tempdir" ]]; then
+        \rm -rf "$__tempdir";
+    fi;
+    return $__return
+}
+current path: /home/sekai_cms/.rvm/src
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/home/sekai_cms/.rvm/bin
+command(3): __rvm_package_extract /home/sekai_cms/.rvm/archives/readline-5.2.tar.gz /home/sekai_cms/.rvm/src
++ rvm_debug __rvm_package_extract:2: /home/sekai_cms/.rvm/archives/readline-5.2.tar.gz /home/sekai_cms/.rvm/src
++ ((  0  ))
++ return 0
++ typeset __tempdir __path __file __return
++ __return=0
+++ TMPDIR=/home/sekai_cms/.rvm/tmp
+++ mktemp -d -t rvm-tmp.XXXXXXXXX
++ __tempdir=/home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7
++ __rvm_package_extract_run /home/sekai_cms/.rvm/archives/readline-5.2.tar.gz /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7
++ [[ -d /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7 ]]
++ case "$1" in
++ [[ -n '' ]]
++ __rvm_tar xzf /home/sekai_cms/.rvm/archives/readline-5.2.tar.gz -C /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7
++ tar xzf /home/sekai_cms/.rvm/archives/readline-5.2.tar.gz -C /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7
++ __rvm_fix_group_permissions /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7/readline-5.2
++ umask -S
++ __rvm_grep g=rw
++ GREP_OPTIONS=
++ grep g=rw
++ chmod -R g+rwX /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7/readline-5.2
++ ((  __return == 0  ))
++ for __path in '"$__tempdir"/*'
++ __file=readline-5.2
++ [[ -n readline-5.2 ]]
++ [[ -e /home/sekai_cms/.rvm/src/readline-5.2 ]]
++ mv -f /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7/readline-5.2 /home/sekai_cms/.rvm/src/
++ [[ -n /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7 ]]
++ rm -rf /home/sekai_cms/.rvm/tmp/rvm-tmp.XXXXXXXXX.RRlRGQd7
++ return 0

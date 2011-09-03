@@ -1,0 +1,9 @@
+[2014-04-15 07:41:59] __rvm_make
+__rvm_make () 
+{ 
+    \make "$@" || return $?
+}
+current path: /home/sekai_cms/.rvm/src/readline-6.2
+PATH=/sbin:/bin:/usr/sbin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/home/sekai_cms/.rvm/bin:/usr/bin
+command(2): __rvm_make install
++ make install

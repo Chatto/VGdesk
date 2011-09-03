@@ -1,0 +1,40 @@
+[2014-04-11 07:16:30] requirements_freebsd_pkgng_libs_install
+requirements_freebsd_pkgng_libs_install () 
+{ 
+    __rvm_try_sudo pkg install -y "$@" || return $?
+}
+current path: /home/sekai_cms/.rvm/src/rvm
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin
+command(2): requirements_freebsd_pkgng_libs_install readline
+++ /scripts/functions/requirements/freebsd : requirements_freebsd_pkgng_libs_install()  22 > __rvm_try_sudo pkg install -y readline
+++ /scripts/functions/utility : __rvm_try_sudo()  351 > typeset -a command_to_run
+++ /scripts/functions/utility : __rvm_try_sudo()  352 > typeset sudo_path sbin_path missing_paths
+++ /scripts/functions/utility : __rvm_try_sudo()  353 > command_to_run=("$@")
+++ /scripts/functions/utility : __rvm_try_sudo()  354 > ((  UID == 0  ))
+++ /scripts/functions/utility : __rvm_try_sudo()  355 > case "$rvm_autolibs_flag_number" in
+++ /scripts/functions/utility : __rvm_try_sudo()  370 > [[ FreeBSD 10.0 == \S\o\l\a\r\i\s\ \1\0 ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  375 > sudo_path=
+++ /scripts/functions/utility : __rvm_try_sudo()  378 > __rvm_which sudo
+++ /scripts/functions/utility : __rvm_try_sudo()  380 > missing_paths=
+++ /scripts/functions/utility : __rvm_try_sudo()  381 > for sbin_path in /sbin /usr/sbin /usr/local/sbin
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ -d /sbin ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ ! :/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin: =~ :/sbin: ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  381 > for sbin_path in /sbin /usr/sbin /usr/local/sbin
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ -d /usr/sbin ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ ! :/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin: =~ :/usr/sbin: ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  381 > for sbin_path in /sbin /usr/sbin /usr/local/sbin
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ -d /usr/local/sbin ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  383 > [[ ! :/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin: =~ :/usr/local/sbin: ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  387 > [[ -n '' ]]
+++ /scripts/functions/utility : __rvm_try_sudo()  390 > command_to_run=(${sudo_path}sudo -p "%p password required for '$*': " "${command_to_run[@]}")
+++ /scripts/functions/utility : __rvm_try_sudo()  397 > sudo -p '%p password required for '\''pkg install -y readline'\'': ' pkg install -y readline
+Updating repository catalogue
+The following 1 packages will be installed:
+
+	Installing readline: 6.3.3_1
+
+The installation will require 1 MB more space
+
+310 KB to be downloaded
+Checking integrity... done
+[1/1] Installing readline-6.3.3_1... done

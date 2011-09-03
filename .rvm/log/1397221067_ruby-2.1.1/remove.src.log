@@ -1,0 +1,19 @@
+[2014-04-11 07:57:47] __rvm_rm_rf
+__rvm_rm_rf () 
+{ 
+    __rvm_rm_rf_verbose "$@"
+}
+current path: /home/sekai_cms/.rvm/src/rvm
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/usr/local/heroku/heroku-client/bin/:/home/sekai_cms/.rvm/bin
+command(2): __rvm_rm_rf /home/sekai_cms/.rvm/src/ruby-2.1.1
+++ /scripts/functions/cleanup : __rvm_rm_rf()  6 > __rvm_rm_rf_verbose /home/sekai_cms/.rvm/src/ruby-2.1.1
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  13 > typeset target
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  14 > target=/home/sekai_cms/.rvm/src/ruby-2.1.1
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  18 > [[ -n '' ]]
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  22 > [[ -n 4.3.0(1)-release ]]
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  24 > shopt -s extglob
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  28 > case "${target}" in
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  35 > [[ -z /home/sekai_cms/.rvm/src/ruby-2.1.1 ]]
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  40 > [[ -d /home/sekai_cms/.rvm/src/ruby-2.1.1 ]]
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  42 > rm -rf /home/sekai_cms/.rvm/src/ruby-2.1.1
+++ /scripts/functions/cleanup : __rvm_rm_rf_verbose()  62 > true

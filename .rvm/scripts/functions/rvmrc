@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+
+source "${rvm_scripts_path}/functions/rvmrc_project"
+source "${rvm_scripts_path}/functions/rvmrc_set"
+source "${rvm_scripts_path}/functions/rvmrc_to"
+source "${rvm_scripts_path}/functions/rvmrc_trust"
+source "${rvm_scripts_path}/functions/rvmrc_warning"
+
+__rvm_rvmrc_match_all() [[ "${1:-}" == "all" || "${1:-}" == "all.rvmrcs" || "${1:-}" == "allGemfiles" ]]
+
+__rvm_rvmrc_tools()
+{
+  typeset rvmrc_action rvmrc_warning_action rvmrc_path saveIFS trust rvmrc_ruby
+
+  rvmrc_action="$1"
+  (( $# )) && shift || true
+
+  if
+    [[ "${rvmrc_action}" == "warning" ]]
+  then
+    rvmrc_warning_action="${1:-}"
+    (( $# )) && shift || true
+  fi
+
+  if
+    [[ "${rvmrc_action}" == "create" ]]
+  then
+    rvmrc_ruby="${1:-${GEM_HOME##*/}}"
+    rvmrc_path="$(__rvm_cd "$PWD" >/dev/null 2>&1; pwd)"
+  elif
+    [[ "${rvmrc_action}" == "to" || "${rvmrc_action}" == "warning" ]]
+  then
+    rvmrc_path="$1"
+  elif
+    __rvm_rvmrc_match_all "${1:-}"
+  then
+    rvmrc_path="$1"
+  else
+    if [[ -n "${1:-}" ]]
+    then rvmrc_path="${1%/.rvmrc}"
+    else rvmrc_path="$PWD"
+    fi
+    rvmrc_path="$(__rvm_cd "${rvmrc_path}" >/dev/null 2>&1; pwd)"
+  fi
+  (( $# )) && shift || true
+
+  if
+    (( $# ))
+  then
+    rvmrc_path="${rvmrc_path}/$1"
+  elif
+    [[ "${rvmrc_action}" == "to" || "${rvmrc_action}" == "warning" ]] ||
+    __rvm_rvmrc_match_all "${rvmrc_path:-}"
+  then
+    true # ignore all*
+  else
+    __rvm_project_dir_check "${rvmrc_path}" rvmrc_path "${rvmrc_path}/.rvmrc"
+  fi
+
+  case "$rvmrc_action" in
+    warning)
+      __rvmrc_warning "${rvmrc_warning_action:-}" "$rvmrc_path" || return $?
+      ;;
+
+    to)
+      __rvm_rvmrc_to "$rvmrc_path" || return $?
+      ;;
+
+    create)
+      (
+        rvm_create_flag=1 __rvm_use "${rvmrc_ruby}"
+        case "${rvmrc_path}" in
+          (*/.rvmrc|*/--rvmrc)                 __rvm_set_rvmrc         ;;
+          (*/.ruby-version|*/--ruby-version)   __rvm_set_ruby_version  ;;
+          (*/.versions.conf|*/--versions-conf) __rvm_set_versions_conf ;;
+          (*)
+            rvm_error "Unrecognized project file format."
+            return 1
+            ;;
+        esac
+      )
+      ;;
+    reset)
+      __rvm_reset_rvmrc_trust "$rvmrc_path" &&
+        rvm_log "Reset trust for $rvmrc_path" ||
+        rvm_error "Reset trust for $rvmrc_path - failed"
+      ;;
+    trust)
+      __rvm_trust_rvmrc "$rvmrc_path" &&
+        rvm_log "Marked $rvmrc_path as trusted" ||
+        rvm_error "Marked $rvmrc_path as trusted - failed"
+      ;;
+
+    untrust)
+      __rvm_untrust_rvmrc "$rvmrc_path" &&
+        rvm_log "Marked $rvmrc_path as untrusted" ||
+        rvm_error "Marked $rvmrc_path as untrusted - failed"
+      ;;
+
+    trusted)
+      __rvm_rvmrc_stored_trust_check "$rvmrc_path" || return $?
+      ;;
+
+    is_trusted)
+      __rvm_rvmrc_stored_trust_check "$rvmrc_path" >/dev/null
+      ;;
+
+    load)
+      rvm_current_rvmrc="" rvm_trust_rvmrcs_flag=1 __rvm_project_rvmrc "$rvmrc_path"
+      ;;
+
+    try_to_read_ruby)
+      __rvm_rvmrc_tools_try_to_read_ruby "$@" || return $?
+      ;;
+
+    *)
+      rvm_error "Usage: rvm rvmrc {trust,untrust,trusted,load,reset,is_trusted,try_to_read_ruby,create}"
+      return 1
+      ;;
+  esac
+
+  return $?
+}
+
+__rvm_rvmrc_tools_try_to_read_ruby()
+{
+  case "$rvmrc_path" in
+    (*/.rvmrc)
+      # make sure the flag is passed on to sub-process () / $()
+      if [[ -n "${rvm_trust_rvmrcs_flag:-}" ]]
+      then export rvm_trust_rvmrcs_flag
+      fi
+
+      __rvm_rvmrc_tools is_trusted "$(dirname "$rvmrc_path")"  "$(basename "$rvmrc_path")" ||
+      (
+        # subprocess to not mess with current process variables
+        rvm_promptless=1 __rvm_project_rvmrc "$rvmrc_path" >/dev/null 2>&1
+      )
+
+      if __rvm_rvmrc_tools is_trusted "$(dirname "$rvmrc_path")" "$(basename "$rvmrc_path")"
+      then __rvm_rvmrc_tools_read_ruby "$@" || return $?
+      else return 1
+      fi
+      ;;
+    (*)
+      __rvm_rvmrc_tools_read_ruby "$@" || return $?
+      ;;
+  esac
+}
+
+__rvm_rvmrc_tools_read_ruby()
+{
+  rvm_ruby_string="$(
+    # subprocess to not mess with current process variables
+    rvm_action="${rvm_action:-use}"
+    rvm_current_rvmrc=""
+    rvm_trust_rvmrcs_flag=1
+    __rvm_project_rvmrc "$rvmrc_path" >/dev/null 2>&1 &&
+      __rvm_env_string
+  )"
+  rvm_ruby_strings="$rvm_ruby_string"
+  [[ -n "$rvm_ruby_string" ]] || return 101
+  true
+}

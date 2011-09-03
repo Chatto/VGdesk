@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+
+
+ree_transform_configure_flags()
+{
+  typeset flag
+  typeset -a new_flags
+  new_flags=()
+  for flag in "${rvm_configure_flags[@]}"
+  do
+    new_flags+=( -c "${flag}" )
+  done
+  rvm_configure_flags=( "${new_flags[@]}" )
+}
+
+ree_install()
+{
+  if
+    [[ -n "$(echo "$rvm_ruby_version" | __rvm_awk '/^1\.8/{print}')" ]] && (( rvm_head_flag == 0 ))
+  then
+    ruby="ruby-1."
+    __rvm_ensure_has_mri_ruby "$ruby" &&
+    ruby="$(__rvm_mri_ruby "$ruby")"  ||
+    return $?
+
+    rvm_log "Installing Ruby Enterprise Edition from source to: $rvm_ruby_home"
+
+    __rvm_cd "${rvm_src_path}"
+
+    if
+      [[ -d "${rvm_src_path}/$rvm_ruby_string" ]] &&
+      [[ -x "${rvm_src_path}/$rvm_ruby_string/installer" ]]
+    then
+      rvm_log "It appears that the archive has already been extracted. Skipping extract (use reinstall to do fresh installation)."
+    else
+      rvm_log "$rvm_ruby_string - #fetching ($rvm_ruby_package_file)"
+      if
+        "$rvm_scripts_path/fetch" "$rvm_ruby_url"
+      then
+        true
+      else
+        result=$?
+        rvm_error "There has been an error while trying to fetch the source. \nHalting the installation."
+        return $result
+      fi
+
+      __rvm_log_command "extract" "$rvm_ruby_string - #extracting $rvm_ruby_package_file to ${rvm_src_path}/$rvm_ruby_string" \
+        __rvm_package_extract "${rvm_archives_path}/$rvm_ruby_package_file.$rvm_archive_extension" "${rvm_src_path}/" ||
+      case $? in
+        199)
+          rvm_error "\nUnrecognized archive format '$archive_format'"
+          return 199
+          ;;
+        *)
+          rvm_error "There has been an error while trying to extract the source. Halting the installation."
+          return 1
+          ;;
+      esac
+
+      __rvm_rm_rf "${rvm_src_path}/$rvm_ruby_string"
+      \mv "${rvm_src_path}/$rvm_ruby_package_file" "${rvm_src_path}/$rvm_ruby_string"
+    fi
+
+    __rvm_cd "${rvm_src_path}/$rvm_ruby_string"
+
+    __rvm_setup_compile_environment "${rvm_ruby_string}"
+
+    #TODO: wait, what? Investigate line smell.
+    mkdir -p "${rvm_ruby_home}/lib/ruby/gems/1.8/gems"
+
+    ree_transform_configure_flags
+
+    #TODO: are there any other versions then 1.8.6 || 1.8.7
+    if
+      [[ "Darwin" == "${_system_type}" ]] &&
+      [[ "1.8.6" == "$rvm_ruby_version" || "1.8.7" == "$rvm_ruby_version" ]] &&
+      [[ ! " ${rvm_ree_options[*]} " =~ " --no-tcmalloc " ]]
+    then
+      rvm_ree_options+=( --no-tcmalloc )
+    fi
+
+    __rvm_db "${rvm_ruby_interpreter}_configure_flags" "db_configure_flags"
+    if [[ -n "${ZSH_VERSION:-}" ]]
+    then rvm_configure_flags=( ${=db_configure_flags} "${rvm_configure_flags[@]}" )
+    else rvm_configure_flags=( ${db_configure_flags}  "${rvm_configure_flags[@]}" )
+    fi
+
+    __rvm_apply_patches "${rvm_src_path}/$rvm_ruby_string/source"
+    result=$?
+
+    if (( result == 0 )) && [[ "${_system_arch}" == "x86_64" ]]
+    then
+      __rvm_apply_patches "${rvm_src_path}/$rvm_ruby_string" lib64
+      result=$?
+    fi
+    __rvm_apply_patches "${rvm_src_path}/$rvm_ruby_string" ruby-binary-shebang
+
+    if (( result > 0 ))
+    then
+      rvm_error "There has been an error while trying to apply patches to ree. \nHalting the installation."
+      return $result
+    fi
+
+    __rvm_log_command "install" "$rvm_ruby_string - #installing" \
+      __rvm_with "$ruby" env \
+      "${rvm_configure_env[@]}" ./installer -a "$rvm_rubies_path/$rvm_ruby_string" "${rvm_ree_options[@]}" "${rvm_configure_flags[@]}" ||
+      return $?
+
+    [[ -x "$rvm_rubies_path/$rvm_ruby_string"/bin/ruby ]] ||
+    {
+      rvm_error "There has been an error while trying to run the ree installer - bin/ruby was not created,
+check the log file: $( ls -1t "${rvm_log_path}/${rvm_ruby_string:-}"/*_install.log | __rvm_tail -n 1 )"
+      return 11
+    }
+
+    __rvm_initial_gemsets_create "$rvm_ruby_home/bin/ruby" &&
+    __rvm_post_install
+  else
+
+    __rvm_db "${rvm_ruby_interpreter}_${rvm_ruby_version}_repo_url" "rvm_ruby_url"
+
+    if [[ -z "$rvm_ruby_url" ]] ; then
+      rvm_error "rvm does not know the rvm repo url for '${rvm_ruby_interpreter}_${rvm_ruby_version}'"
+      result=1
+
+    else
+      rvm_ruby_repo_url="$rvm_ruby_url"
+      __rvm_setup_compile_environment "${rvm_ruby_string}"
+      __rvm_install_source $*
+    fi
+  fi
+}

@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+
+requirements_osx_update_openssl_cert_old() [[ ! -f "$cert_file" ||
+  "$cert_file" -ot /Library/Keychains/System.keychain ||
+  "$cert_file" -ot /System/Library/Keychains/SystemRootCertificates.keychain
+]]
+
+requirements_osx_update_openssl_cert_create_dir()
+{
+  [[ -d "$ssl_dir" ]] || mkdir -p "$ssl_dir" || __rvm_try_sudo mkdir -p "$ssl_dir" ||
+  {
+    typeset __ret=$?
+    rvm_error "Can not create directory '$ssl_dir' for certificates."
+    return ${__ret}
+  }
+}
+
+requirements_osx_update_openssl_cert_target_select()
+{
+  if
+    [[ -f "$cert_file" && -w "$cert_file" ]] ||
+    [[ ! -e "$cert_file" && -d "$ssl_dir" && -w "$ssl_dir" ]]
+  then
+    __target="$cert_file"
+  else
+    __target="$(
+      TMPDIR="${rvm_tmp_path}" mktemp ${TMPDIR:-/tmp}/tmp.XXXXXXXXXXXXXXXXXX
+    )"
+  fi
+}
+
+requirements_osx_update_openssl_cert_create_cert()
+{
+  security find-certificate -a -p /Library/Keychains/System.keychain > "$__target"
+  security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> "$__target"
+}
+
+requirements_osx_update_openssl_cert_target_move()
+{
+  [[ "$__target" == "$cert_file" ]] ||
+  __rvm_try_sudo \mv -f "$__target" "$cert_file" ||
+  {
+    typeset __ret=$?
+    rm -f "$__target"
+    return ${__ret}
+  }
+}
+requirements_osx_update_openssl_cert_run()
+{
+  typeset __target="$cert_file"
+
+  if
+    [[ -z "$cert_file" ]]
+  then
+    rvm_error "Empty path passed to certificates update, functions stack: ${FUNCNAME[*]}"
+    return 1
+  fi
+
+  rvm_log "Updating certificates in '$cert_file'."
+
+  requirements_osx_update_openssl_cert_create_dir    || return $?
+  requirements_osx_update_openssl_cert_target_select || return $?
+  requirements_osx_update_openssl_cert_create_cert   || return $?
+  requirements_osx_update_openssl_cert_target_move   || return $?
+}
+
+requirements_osx_update_openssl_cert()
+{
+  [[ "Darwin" == "${_system_type}" ]] || return 0
+
+  typeset ssl_binary ssl_dir cert_file
+  ssl_binary="${1:-$(__rvm_which openssl)}"
+  __rvm_osx_ssl_certs_file_from_openssl "${ssl_binary}" || return $?
+  ssl_dir="${cert_file%/*}"
+
+  case "${rvm_autolibs_flag_number}" in
+    (0)
+      rvm_debug "Skipping update of certificates in '$cert_file', to force update run:
+    rvm osx-ssl-certs update ${cert_file}
+"
+      return 0
+      ;;
+  esac
+
+  if
+    requirements_osx_update_openssl_cert_old
+  then
+    rvm_requiremnts_fail_or_run_action 2 \
+      "Skipping update of certificates in '$cert_file', to force update run:
+    rvm osx-ssl-certs update ${cert_file}
+" \
+      requirements_osx_update_openssl_cert_run ||
+      return $?
+  else
+    rvm_log "Certificates in '$cert_file' already are up to date."
+  fi
+}
+
+__rvm_osx_ssl_certs_update_for_path()
+{
+  typeset ssl_dir cert_file
+  cert_file="${1:-$( __rvm_osx_ssl_certs_file_for_ruby )}"
+  ssl_dir="${cert_file%/*}"
+
+  if (( ${rvm_silent_flag:-0} == 0 ))
+  then printf "%b" "Updating certificates for ${cert_file}: "
+  fi
+  if
+    requirements_osx_update_openssl_cert_old
+  then
+    if
+      requirements_osx_update_openssl_cert_run
+    then
+      if (( ${rvm_silent_flag:-0} == 0 ))
+      then printf "%b" "Updated.\n"
+      fi
+    else
+      typeset result=$?
+      if (( ${rvm_silent_flag:-0} == 0 ))
+      then printf "%b" "Failed.\n"
+      else printf "%b" "Updating certificates for ${cert_file}: Failed.\n"
+      fi
+      return $result
+    fi
+  else
+    if (( ${rvm_silent_flag:-0} == 0 ))
+    then printf "%b" "Already are up to date.\n"
+    fi
+  fi
+}
+
+__rvm_osx_ssl_certs_status_for_path()
+{
+  typeset ssl_dir cert_file
+  cert_file="$1"
+  ssl_dir="${cert_file%/*}"
+
+  printf "%b" "Certificates for ${cert_file}: "
+  if requirements_osx_update_openssl_cert_old
+  then printf "%b" "Old.\n"
+  else printf "%b" "Up to date.\n"
+  fi
+}
+
+__rvm_osx_ssl_certs_file_for_ruby()
+{
+  "${1:-ruby}" -ropenssl -e 'puts OpenSSL::X509::DEFAULT_CERT_FILE'
+}
+
+__rvm_osx_ssl_certs_ensure_for_ruby()
+{
+  [[ "${_system_name}" == "OSX" ]] || return 0
+
+  typeset ssl_dir cert_file
+  cert_file="$( __rvm_osx_ssl_certs_file_for_ruby "$1" )"
+  ssl_dir="${cert_file%/*}"
+  if
+    requirements_osx_update_openssl_cert_old
+  then
+    rvm_requiremnts_fail_or_run_action 2 \
+      "Skipping update of certificates in '$cert_file'." \
+      requirements_osx_update_openssl_cert_run ||
+      true # Ignore failure - ruby is already installed
+  fi
+  true # for osx
+}
+
+
+__rvm_osx_ssl_certs_file_from_openssl()
+{
+  cert_file="$( "${1:-openssl}" version -d )" ||
+    rvm_requiremnts_fail_always 2 "Failed reading certificates path for '${1:-openssl}' with return code: ($__result)." $? ||
+    return $?
+  cert_file="${cert_file#*\"}"
+  cert_file="${cert_file%\"*}"
+  cert_file="${cert_file}/cert.pem"
+}
+
+__rvm_cron_find()
+{
+  EDITOR=\cat crontab -e 2>/dev/null | __rvm_grep "$1" >/dev/null || return $?
+}
+
+__rvm_cron_uninstall()
+{
+  EDITOR=\cat crontab -e 2>/dev/null | __rvm_grep -v "$1" | crontab -
+}
+
+__rvm_cron_install()
+{
+  {
+    EDITOR=\cat crontab -e 2>/dev/null
+    echo "@daily $1"
+  } | crontab -
+}
+
+export RVM_OSX_SSL_UPDATER="$rvm_path/bin/rvm --silent osx-ssl-certs update all"

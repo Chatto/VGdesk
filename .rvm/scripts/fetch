@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+
+url="$1"
+archive="$2"
+
+[[ -n "$url" ]] || rvm_fail "BUG: no url given for fetch"
+shift || rvm_fail "BUG: $0 called without an argument :/"
+
+rvm_base_except="selector"
+source "$rvm_scripts_path/base"
+
+# handled by teardown - scripts/functions/environment:314
+__rvm_cleanup_download()
+{
+  [[ -f "$archive" ]] && __rvm_rm_rf "$archive"
+}
+
+__rvm_cd "$rvm_archives_path"
+
+[[ -n "$archive" ]] || archive=$(basename "$url")
+fetch_command=( __rvm_curl --create-dirs -C - -o "${archive}.part" )
+
+download=1
+try_ftp=0
+result=0
+retry=0
+
+__rvm_checksum_read "$url" "$archive"
+
+__rvm_checksum_any || (( ${rvm_verify_downloads_flag:-1} > 0 )) ||
+  rvm_fail "There is no checksum for '$url' or '$archive', it's not possible to validate it.
+This could be because your RVM install's list of versions is out of date. You may want to
+update your list of rubies by running 'rvm get stable' and try again.
+If that does not resolve the issue and you wish to continue with unverified download
+add '--verify-downloads 1' after the command.
+"
+
+function verification_check()
+{
+  if
+    (( ${rvm_verify_downloads_flag:-1}>=$1 ))
+  then
+    rvm_debug "Archive ${archive} checksum $2, continuing anyway."
+  else
+    rvm_warn "Archive ${archive} checksum $2, downloading again."
+    download=1
+  fi
+}
+
+download=0
+if
+  [[ -e "$archive" ]]
+then
+  # Check first if we have the correct archive
+  if
+    __rvm_checksum_validate_file "$rvm_archives_path/${archive}"
+  then
+    rvm_debug "Archive checksum matched, not downloading"
+  else
+    case $? in
+      (1) verification_check 1 "not found"     ;;
+      (*) verification_check 2 "did not match" ;;
+    esac
+  fi
+else
+  rvm_debug "No archive, downloading"
+  download=1
+fi
+
+function download_the_url()
+{
+  typeset counter=${1:-0}
+  if
+    (( counter >3 ))
+  then
+    rvm_error "ERROR: Retried 3 times and failed!"
+    return 200
+  fi
+  "${fetch_command[@]}" "$url" &&
+  \mv "${archive}.part" "${archive}" ||
+  {
+    result=$?
+    case "$result" in
+      (22|78)
+        rvm_error "The requested url does not exist($result): '$url'"
+        ;;
+      (18)
+        rvm_error "Partial file($result). Only a part of the file was transferred. Removing partial and re-trying."
+        \rm -f "${archive}.part"
+        download_the_url $counter
+        ;;
+      (33)
+        rvm_debug "Server does not support 'range' command($result), removing '${archive}.part'"
+        \rm -f "${archive}.part"
+        download_the_url $counter
+        ;;
+      # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
+      (60)
+        log "
+Could not download '${_url}', you can read more about it here:
+https://rvm.io/support/fixing-broken-ssl-certificates/
+To continue in insecure mode run 'echo insecure >> ~/.curlrc'.
+"
+        ;;
+      # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
+      (77)
+        log "
+It looks like you have old certificates, you can read more about it here:
+https://rvm.io/support/fixing-broken-ssl-certificates/
+"
+        ;;
+      # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
+      (141)
+        rvm_warn "Curl returned 141 - it is result of a segfault which means it's Curls fault.
+Try again and if it crashes more than a couple of times you either need to
+reinstall Curl or consult with your distribution manual and contact support."
+        ;;
+      (*)
+        rvm_error "There was an error($result)."
+        ;;
+    esac
+    return $result
+  }
+}
+
+if
+  (( download > 0 ))
+then
+  download_the_url ||
+  {
+    typeset __fallback __default_ruby_url __iterator result=$?
+    typeset -a __fallbacks
+    __fallbacks=()
+    __default_ruby_url="$(__rvm_db ruby_url)"
+    if
+      [[ "${url}" =~ "${__default_ruby_url}" ]]
+    then
+      __iterator=1
+      while
+        __fallback="$(__rvm_db ruby_url_fallback_${__iterator})" &&
+        [[ -n "${__fallback}" ]]
+      do
+        __fallbacks+=( "${url/${__default_ruby_url}/${__fallback}}" )
+        : $(( __iterator+=1 ))
+      done
+    elif
+      [[ "${url}" =~ "http://" ]]
+    then
+      __fallbacks+=( "${url/http:/ftp:}"  "${url/http:\/\//http://www.mirrorservice.org/sites/}"  )
+    elif
+      [[ "${url}" =~ "https://" ]]
+    then
+      __fallbacks+=( "${url/https:/ftp:}" "${url/https:\/\//http://www.mirrorservice.org/sites/}" )
+    else
+      rvm_fail "
+No fallback URL can be calculated for ${url}, open a ticket with full output here:
+
+    https://github.com/wayneeseguin/rvm/issues
+
+" $result
+    fi
+    for __fallback in "${__fallbacks[@]}"
+    do
+      rvm_warn "Checking fallback: ${__fallback}"
+      if
+        file_exists_at_url "${__fallback}"
+      then
+        url="${__fallback}"
+        download_the_url 1 || rvm_fail "Failed download" $?
+        result=0
+        break
+      fi
+    done
+    if
+      (( result ))
+    then
+      rvm_fail "\
+No fallback URL could be found, try increasing timeout with:
+
+    echo \"export rvm_max_time_flag=20\" >> ~/.rvmrc
+" $result
+    fi
+  }
+fi
+
+# Check if we have downloaded the correct archive
+if
+  __rvm_checksum_validate_file "$rvm_archives_path/${archive}"
+then
+  rvm_debug "Downloaded archive checksum matched."
+else
+  result=$?
+  if
+   (( result==1 && ${rvm_verify_downloads_flag:-1}>0 ))
+  then
+    rvm_warn "No checksum for downloaded archive, recording checksum in user configuration."
+    __rvm_checksum_calculate_file "$archive"
+    __rvm_checksum_write          "$url"
+  elif
+   (( result>1  && ${rvm_verify_downloads_flag:-1}>1 ))
+  then
+    rvm_warn "Downloaded archive checksum did not match!"
+  elif
+   (( result == 1 ))
+  then
+    rvm_fail "Downloaded archive checksum could not be verified!
+If you wish to continue with unverified download add '--verify-downloads 1' after the command.
+"
+  else
+    \rm -f $archive
+    rvm_fail "Downloaded archive checksum did not match, archive was removed!
+If you wish to continue with not matching download add '--verify-downloads 2' after the command.
+"
+  fi
+fi

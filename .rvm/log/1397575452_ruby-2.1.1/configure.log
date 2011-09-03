@@ -1,0 +1,6 @@
+[2014-04-15 10:24:15] ./configure
+current path: /home/kawaii/.rvm/src/ruby-2.1.1
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/kawaii//bin:/home/kawaii//.rvm/bin
+command(6): ./configure --prefix=/home/kawaii//.rvm/rubies/ruby-2.1.1 --with-opt-dir=/usr/local --disable-dtrace --disable-install-doc --enable-shared
+./configure: cannot create config.log: Permission denied
+./configure: cannot create config.log: Permission denied

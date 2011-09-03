@@ -1,0 +1,38 @@
+[2014-04-15 07:41:33] __rvm_autoreconf
+__rvm_autoreconf () 
+{ 
+    \autoreconf "$@" || return $?
+}
+current path: /home/sekai_cms/.rvm/src/readline-5.2
+PATH=/sbin:/bin:/usr/sbin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/home/sekai_cms/.rvm/bin:/usr/bin
+command(3): __rvm_autoreconf -is --force
++ autoreconf -is --force
+autoheader-2.69: warning: missing template: CTYPE_NON_ASCII
+autoheader-2.69: Use AC_DEFINE([CTYPE_NON_ASCII], [], [Description])
+autoheader-2.69: warning: missing template: FIONREAD_IN_SYS_IOCTL
+autoheader-2.69: warning: missing template: HAVE_BSD_SIGNALS
+autoheader-2.69: warning: missing template: HAVE_GETPW_DECLS
+autoheader-2.69: warning: missing template: HAVE_LANGINFO_CODESET
+autoheader-2.69: warning: missing template: HAVE_MBRLEN
+autoheader-2.69: warning: missing template: HAVE_MBSRTOWCS
+autoheader-2.69: warning: missing template: HAVE_MBSTATE_T
+autoheader-2.69: warning: missing template: HAVE_POSIX_SIGNALS
+autoheader-2.69: warning: missing template: HAVE_POSIX_SIGSETJMP
+autoheader-2.69: warning: missing template: HAVE_STRUCT_DIRENT_D_FILENO
+autoheader-2.69: warning: missing template: HAVE_STRUCT_DIRENT_D_INO
+autoheader-2.69: warning: missing template: HAVE_USG_SIGHOLD
+autoheader-2.69: warning: missing template: HAVE_WCRTOMB
+autoheader-2.69: warning: missing template: HAVE_WCSCOLL
+autoheader-2.69: warning: missing template: HAVE_WCSDUP
+autoheader-2.69: warning: missing template: HAVE_WCTYPE
+autoheader-2.69: warning: missing template: HAVE_WCWIDTH
+autoheader-2.69: warning: missing template: MUST_REINSTALL_SIGHANDLERS
+autoheader-2.69: warning: missing template: NO_MULTIBYTE_SUPPORT
+autoheader-2.69: warning: missing template: SPEED_T_IN_SYS_TYPES
+autoheader-2.69: warning: missing template: STRCOLL_BROKEN
+autoheader-2.69: warning: missing template: STRUCT_WINSIZE_IN_SYS_IOCTL
+autoheader-2.69: warning: missing template: STRUCT_WINSIZE_IN_TERMIOS
+autoheader-2.69: warning: missing template: TIOCSTAT_IN_SYS_IOCTL
+autoheader-2.69: warning: missing template: VOID_SIGHANDLER
+autoreconf-2.69: /usr/local/bin/autoheader-2.69 failed with exit status: 1
++ return 1

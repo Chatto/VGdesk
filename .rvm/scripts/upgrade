@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+
+unset GREP_OPTIONS
+
+usage()
+{
+  printf "%b" "
+
+  Usage:
+
+    rvm upgrade {source-ruby} [destination-ruby] [--force]
+
+  Description:
+
+    Upgrades the specified (already installed) source ruby given to the
+    given destination ruby version. Will migrate gemsets, wrappers, aliases
+    and environment files.
+
+    To upgrade rvm itself you want 'rvm get'.
+
+  Examples:
+
+    $ rvm upgrade 1.9.2-p136 1.9.2-p180
+
+    $ rvm upgrade ree-2011.01 ree-2011-02
+
+"
+}
+
+confirm()
+{
+  if (( ${rvm_force_flag:-0} > 0 ))
+  then return 0
+  fi
+
+  typeset confirmation_response
+
+  printf "%b" "$1 (Y/n): "
+
+  read -r confirmation_response
+
+  if [[ -n "$confirmation_response" ]]
+  then
+    echo $confirmation_response | __rvm_grep -i '^y\|^Y' >/dev/null 2>&1
+  fi
+}
+
+die_with_error()
+{
+  rvm_error "$1"
+  exit "${2:-1}"
+}
+
+expand_ruby_name()
+(
+  source "$rvm_scripts_path/functions/tools"
+  tools_strings "${1%%@*}"
+)
+
+existing_ruby_patch()
+{
+  {
+    __rvm_list_strings | __rvm_grep -E "^ruby-$1|^$1$" ||
+    (
+      rvm_ruby_string="$1"
+      __rvm_ruby_string
+      __rvm_list_strings | __rvm_grep -E "^${rvm_ruby_interpreter}-${rvm_ruby_version}(-.*|$)" ||
+      __rvm_list_strings | __rvm_grep "^${rvm_ruby_interpreter}-"
+    )
+  } | __rvm_version_sort | __rvm_tail -n 1
+}
+
+highest_ruby_patch()
+{
+  typeset patch_level _version
+  (
+    rvm_ruby_string=$1
+    __rvm_ruby_string
+
+    patch_level="$(
+      __rvm_db "${rvm_ruby_interpreter}_${rvm_ruby_version}_patch_level"
+    )"
+    _version="$(
+      __rvm_db "${rvm_ruby_interpreter}_version"
+    )"
+    if
+      [[ -n "${patch_level:-""}" ]]
+    then
+      rvm_ruby_patch_level="${patch_level}"
+      echo ${rvm_ruby_interpreter}-${rvm_ruby_version}-${rvm_ruby_patch_level}
+    elif
+      [[ -n "${_version:-""}" ]]
+    then
+      echo ${rvm_ruby_interpreter}-${_version}
+    else
+      echo ${rvm_ruby_interpreter}
+    fi
+  )
+}
+
+upgrade_ruby()
+{
+  [[ -n "$expanded_source"      ]] || die_with_error "The source ruby was not a valid ruby string."
+  [[ -n "$expanded_destination" ]] || die_with_error "The destination ruby was not a valid ruby string."
+
+  confirm "Are you sure you wish to upgrade from $expanded_source to $expanded_destination?" ||
+    die_with_error "Cancelling upgrade."
+
+  [[ -d "$rvm_rubies_path/$expanded_destination" ]] ||
+  {
+    rvm_log "Installing new ruby $expanded_destination"
+    __rvm_run_wrapper manage install "$expanded_destination" ||
+      die_with_error "Unable to install ruby $expanded_destination. Please install it manually to continue." $?
+  }
+
+  rvm_log "Migrating gems from $expanded_source to $expanded_destination"
+
+  "$rvm_scripts_path/migrate" "$expanded_source" "$expanded_destination" || die_with_error "Error migrating gems." "$result"
+
+  rvm_log "Upgrade complete!"
+}
+
+source_ruby="${args[__array_start]:-}"
+destination_ruby="${args[__array_start+1]:-}"
+expanded_source="$(existing_ruby_patch "$source_ruby")"
+
+if
+  [[ -n "$source_ruby" && -z "$destination_ruby" ]]
+then
+  highest_source="$(highest_ruby_patch "$(expand_ruby_name "$source_ruby")")"
+  if [[ "${expanded_source}" != "${highest_source}" ]]
+  then destination_ruby="$(expand_ruby_name "$highest_source")"
+  fi
+fi
+
+if
+  [[ -z "$source_ruby" || -z "$destination_ruby" ]]
+then
+  usage >&2
+  exit 1
+elif
+  [[ "help" == "$source_ruby" ]]
+then
+  usage
+else
+  expanded_destination="$(expand_ruby_name "$destination_ruby")"
+  upgrade_ruby
+fi

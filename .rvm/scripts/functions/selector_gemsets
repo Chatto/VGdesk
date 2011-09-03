@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+
+__rvm_gemset_handle_default()
+{
+  rvm_gemset_name="${rvm_gemset_separator:-@}${rvm_gemset_name:-}${rvm_gemset_separator:-@}"
+  rvm_gemset_name="${rvm_gemset_name/${rvm_gemset_separator:-@}default${rvm_gemset_separator:-@}/}"
+  # also does filter any extra rvm_gemset_separator from the gemset name
+  rvm_gemset_name="${rvm_gemset_name//${rvm_gemset_separator:-@}/}"
+}
+
+__rvm_gemset_select_cli_validation()
+{
+  typeset orig_gemset
+
+  if ! builtin command -v gem > /dev/null
+  then
+    rvm_log "'gem' command not found, cannot select a gemset."
+    return 0
+  fi
+
+  orig_gemset="${rvm_gemset_name:-}"
+  __rvm_gemset_handle_default
+
+  # No longer defaulting to 'sticky' gem sets.
+  # Set 'rvm_sticky_flag=1' in ~/.rvmrc to enable.
+  if [[ -z "${rvm_gemset_name:-}"  && "$orig_gemset" != "default" && ${rvm_sticky_flag:-0} -eq 1 ]]
+  then
+    if [[ -n "${rvm_ruby_gem_home:-}" ]]
+    then
+      rvm_gemset_name="$rvm_ruby_gem_home"
+    elif [[ -n "${GEM_HOME:-}" ]]
+    then
+      rvm_gemset_name="$GEM_HOME"
+    fi
+    rvm_gemset_name="${rvm_gemset_name##*/}"
+    rvm_gemset_name="${rvm_gemset_name#*${rvm_gemset_separator:-"@"}}"
+  fi
+
+  if [[ -z "${rvm_ruby_string:-}" && -n "${GEM_HOME:-}" && -n "${GEM_HOME%@*}" ]]
+  then
+    rvm_ruby_string="${GEM_HOME%@*}"
+    rvm_ruby_string="${rvm_ruby_string##*/}"
+  fi
+
+  if [[ -z "${rvm_ruby_string:-}" ]]
+  then
+    rvm_error "Gemsets can not be used with non rvm controlled rubies (currently)."
+    return 3
+  fi
+}
+
+__rvm_gemset_select_only()
+{
+  rvm_ruby_gem_home="${rvm_gems_path:-"$rvm_path/gems"}/$rvm_ruby_string"
+
+  : rvm_ignore_gemsets_flag:${rvm_ignore_gemsets_flag:=0}:
+  if (( rvm_ignore_gemsets_flag ))
+  then
+    rvm_ruby_global_gems_path="${rvm_ruby_gem_home}"
+    rvm_ruby_gem_path="${rvm_ruby_gem_home}"
+    rvm_gemset_name=""
+  else
+    rvm_ruby_global_gems_path="${rvm_ruby_gem_home}${rvm_gemset_separator:-"@"}global"
+
+    __rvm_gemset_handle_default
+    [[ -z "$rvm_gemset_name" ]] ||
+      rvm_ruby_gem_home="${rvm_ruby_gem_home}${rvm_gemset_separator:-"@"}${rvm_gemset_name}"
+
+    if [[ "$rvm_gemset_name" == "global" ]]
+    then
+      rvm_ruby_gem_path="${rvm_ruby_gem_home}"
+    else
+      rvm_ruby_gem_path="${rvm_ruby_gem_home}:${rvm_ruby_global_gems_path}"
+    fi
+  fi
+
+  if [[ -n "${rvm_gemset_name}" ]]
+  then
+    rvm_env_string="${rvm_ruby_string}@${rvm_gemset_name}"
+  else
+    rvm_env_string=${rvm_ruby_string}
+  fi
+  true # OSX --trace FIX
+}
+
+__rvm_gemset_select_validation()
+{
+  # If the gemset does not exist, then notify the user as such and abort the action.
+  if
+    [[ ! -d "${rvm_ruby_gem_home}" ]]
+  then
+    if
+      (( ${rvm_gemset_create_on_use_flag:=0} == 0 && ${rvm_create_flag:=0} == 0 && ${rvm_delete_flag:=0} == 0 ))
+    then
+      rvm_expected_gemset_name="${rvm_gemset_name}"
+      rvm_gemset_name=""
+      __rvm_gemset_select_only
+      return 2
+    fi
+  elif
+    (( ${rvm_delete_flag:=0} == 1 ))
+  then
+    return 4
+  fi
+
+  case "${rvm_gemset_name}" in
+    (*/*)
+      rvm_error "Gemsets can not contain path separator '/'."
+      return 5
+      ;;
+    (*:*)
+      rvm_error "Gemsets can not contain PATH separator ':'."
+      return 5
+      ;;
+  esac
+
+  typeset rvm_ruby_gem_home_254
+  if [[ -n "${ZSH_VERSION:-}" ]]
+  then rvm_ruby_gem_home_254="${rvm_ruby_gem_home[0,254]}"
+  else rvm_ruby_gem_home_254="${rvm_ruby_gem_home:0:254}"
+  fi
+  if
+    [[ "${rvm_ruby_gem_home}" != "${rvm_ruby_gem_home_254}" ]]
+  then
+    rvm_error "Gemset gem home to long ${#rvm_ruby_gem_home}."
+    return 6
+  fi
+}
+
+# Select a gemset based on CLI set options and environment.
+__rvm_gemset_select_cli()
+{
+  __rvm_gemset_select_cli_validation &&
+  __rvm_gemset_select ||
+  return $?
+}
+
+__rvm_gemset_select()
+{
+  __rvm_gemset_select_only &&
+  __rvm_gemset_select_validation ||
+  return $?
+}
+
+__rvm_gemset_use_ensure()
+{
+  if
+    [[ ! -d "$rvm_ruby_gem_home" ]] ||
+    [[ -n "${rvm_expected_gemset_name}" && ! -d "${rvm_ruby_gem_home%@*}@${rvm_expected_gemset_name}" ]]
+  then
+    if
+      (( ${rvm_gemset_create_on_use_flag:=0} == 1 || ${rvm_create_flag:=0} == 1 ))
+    then
+      gemset_create "${rvm_expected_gemset_name:-${rvm_gemset_name:-}}"
+    else
+      rvm_error "Gemset '${rvm_expected_gemset_name:-${rvm_gemset_name:-}}' does not exist, \
+'rvm $rvm_ruby_string do rvm gemset create ${rvm_expected_gemset_name:-${rvm_gemset_name:-}}' first, or append '--create'."
+      return 2
+    fi
+  fi
+}
+
+# Use a gemset specified by 'rvm_ruby_gem_home'
+__rvm_gemset_use()
+{
+  if
+    __rvm_gemset_select_cli
+  then
+    rvm_log "Using $rvm_ruby_string with gemset ${rvm_gemset_name:-default}"
+    __rvm_use # Now ensure the selection takes effect for the environment.
+  elif
+    [[ -n "${rvm_expected_gemset_name}" ]]
+  then
+    __rvm_gemset_use_ensure
+  else
+    rvm_error "Gemset was not given.\n  Usage:\n    rvm gemset use <gemsetname>\n"
+    return 1
+  fi
+}
+
+__rvm_gemset_clear()
+{
+  export rvm_gemset_name
+  rvm_gemset_name=""
+  __rvm_use # Now ensure the selection takes effect for the environment.
+}

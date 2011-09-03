@@ -1,0 +1,55 @@
+[2014-04-18 22:14:17] __rvm_package_extract
+__rvm_package_extract () 
+{ 
+    rvm_debug __rvm_package_extract:$#: "$@";
+    typeset __tempdir __path __file __return;
+    __return=0;
+    __tempdir="$( TMPDIR="${rvm_tmp_path}" mktemp -d -t rvm-tmp.XXXXXXXXX )";
+    __rvm_package_extract_run "$1" "$__tempdir" || __return=$?;
+    if (( __return == 0 )); then
+        for __path in "$__tempdir"/*;
+        do
+            __file="${__path##*/}";
+            if [[ -n "${__file}" && -e "$2/${__file}" ]]; then
+                \rm -rf "$2/${__file}" || __return=$?;
+            fi;
+            \mv -f "${__path}" "$2/" || __return=$?;
+        done;
+    fi;
+    if [[ -n "$__tempdir" ]]; then
+        \rm -rf "$__tempdir";
+    fi;
+    return $__return
+}
+current path: /home/kawaii/.rvm/src
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/kawaii/bin:/home/kawaii//.rvm/bin:/home/kawaii/.rvm/bin
+command(3): __rvm_package_extract /home/kawaii/.rvm/archives/ruby-2.1.1.tar.bz2 /home/kawaii/.rvm/tmp/rvm_src_49172
+++ rvm_debug __rvm_package_extract:2: /home/kawaii/.rvm/archives/ruby-2.1.1.tar.bz2 /home/kawaii/.rvm/tmp/rvm_src_49172
+++ ((  0  ))
+++ return 0
+++ typeset __tempdir __path __file __return
+++ __return=0
++++ TMPDIR=/home/kawaii/.rvm/tmp
++++ mktemp -d -t rvm-tmp.XXXXXXXXX
+++ __tempdir=/home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC
+++ __rvm_package_extract_run /home/kawaii/.rvm/archives/ruby-2.1.1.tar.bz2 /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC
+++ [[ -d /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC ]]
+++ case "$1" in
+++ [[ -n '' ]]
+++ __rvm_tar xjf /home/kawaii/.rvm/archives/ruby-2.1.1.tar.bz2 -C /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC
+++ tar xjf /home/kawaii/.rvm/archives/ruby-2.1.1.tar.bz2 -C /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC
+++ __rvm_fix_group_permissions /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC/ruby-2.1.1
+++ umask -S
+++ __rvm_grep g=rw
+++ GREP_OPTIONS=
+++ grep g=rw
+++ chmod -R g+rwX /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC/ruby-2.1.1
+++ ((  __return == 0  ))
+++ for __path in '"$__tempdir"/*'
+++ __file=ruby-2.1.1
+++ [[ -n ruby-2.1.1 ]]
+++ [[ -e /home/kawaii/.rvm/tmp/rvm_src_49172/ruby-2.1.1 ]]
+++ mv -f /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC/ruby-2.1.1 /home/kawaii/.rvm/tmp/rvm_src_49172/
+++ [[ -n /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC ]]
+++ rm -rf /home/kawaii/.rvm/tmp/rvm-tmp.XXXXXXXXX.wmPFUJtC
+++ return 0

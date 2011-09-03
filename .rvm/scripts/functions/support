@@ -1,0 +1,460 @@
+#!/usr/bin/env bash
+
+is_a_function()
+{
+  typeset -f $1 >/dev/null 2>&1 || return $?
+}
+
+# Functions RVM is built on
+# __rvm_string_match <value> <string|glob>
+if
+  [[ -n "$ZSH_VERSION" ]]
+then
+  __rvm_string_match()
+  {
+    typeset _string
+    _string="$1"
+    shift
+    while (( $# ))
+    do
+      eval "\
+      case \"\${_string}\" in\
+        (${1// /[[:space:]]}) return 0 ;;\
+      esac\
+      "
+      shift
+    done
+    return 1
+  }
+else
+  __rvm_string_match()
+  {
+    typeset _string
+    _string="$1"
+    shift
+    while (( $# ))
+    do
+      case "${_string}" in
+        (${1// /[[:space:]]}) return 0 ;;
+      esac
+      shift
+    done
+    return 1
+  }
+fi
+
+__rvm_array_contains()
+{
+  typeset _search _iterator
+  _search="$1"
+  shift
+  for _iterator
+  do
+    case "${_iterator}" in
+      (${_search}) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+__rvm_array_add_or_update()
+{
+  typeset _array_name _variable _separator _value _local_value
+  typeset -a _array_value_old _array_value_new
+
+  _array_name="$1"
+  _variable="$2"
+  _separator="$3"
+  _value="${4##${_separator}}"
+  _array_value_new=()
+  eval "_array_value_old=( \"\${${_array_name}[@]}\" )"
+
+  case " ${_array_value_old[*]} " in
+    (*[[:space:]]${_variable}*)
+      for _local_value in "${_array_value_old[@]}"
+      do
+        case "${_local_value}" in
+          (${_variable}*)
+            _array_value_new+=( "${_local_value}${_separator}${_value}" )
+            ;;
+          (*)
+            _array_value_new+=( "${_local_value}" )
+            ;;
+        esac
+      done
+      ;;
+    (*)
+      _array_value_new=( "${_array_value_old[@]}" "${_variable}${_value}" )
+      ;;
+  esac
+
+  eval "${_array_name}=( \"\${_array_value_new[@]}\" )"
+}
+
+__rvm_array_prepend_or_ignore()
+{
+  typeset _array_name _variable _separator _value _prefix _local_value
+  typeset -a _array_value_old _array_value_new
+
+  _array_name="$1"
+  _variable="$2"
+  _separator="$3"
+  _value="$4"
+  _prefix="$5"
+  _array_value_new=()
+  eval "_array_value_old=( \"\${${_array_name}[@]}\" )"
+
+  case " ${_array_value_old[*]} " in
+    (*[[:space:]]${_variable}*)
+      for _local_value in "${_array_value_old[@]}"
+      do
+        case "${_local_value}" in
+          (${_variable}*${_prefix}*)
+            rvm_debug "__rvm_array_prepend_or_ignore ${_array_name} ${_local_value}"
+            _array_value_new+=( "${_local_value}" )
+            ;;
+          (${_variable}*)
+            rvm_debug "__rvm_array_prepend_or_ignore ${_array_name} ${_variable}\"${_value}${_separator}${_local_value#${_variable}}\""
+            _array_value_new+=( "${_variable}${_value}${_separator}${_local_value#${_variable}}" )
+            ;;
+          (*)
+            _array_value_new+=( "${_local_value}" )
+            ;;
+        esac
+      done
+      eval "${_array_name}=( \"\${_array_value_new[@]}\" )"
+      ;;
+  esac
+}
+
+# Drop in replacement for sed -i compatible with OpenBSD
+# Assumes that filename is the first argument, all others are passed onto sed
+__rvm_sed_i()
+{
+  typeset _filename _executable
+  [[ -n "${1:-}" ]] || {
+    rvm_debug "no file given for __rvm_sed_i"
+    return 0
+  }
+  _filename="$1"
+  shift
+
+  if [[ -x "${_filename}" ]]
+  then _executable=true
+  fi
+
+  {
+    __rvm_sed "$@" < "${_filename}" > "${_filename}.new" &&
+    \mv -f "${_filename}.new" "${_filename}"
+  } 2>&1 | rvm_debug_stream
+
+  if [[ -n "${_executable:-}" && ! -x "${_filename}" ]]
+  then chmod +x "${_filename}"
+  fi
+}
+
+# Drop in cd which _doesnt't_ respect cdpath
+__rvm_cd()
+{
+    typeset old_cdpath ret
+    ret=0
+    old_cdpath="${CDPATH}"
+    CDPATH="."
+    chpwd_functions="" builtin cd "$@" || ret=$?
+    CDPATH="${old_cdpath}"
+    return $ret
+}
+
+__rvm_setup_utils_functions()
+{
+  typeset gnu_tools_path gnu_prefix gnu_util
+  typeset -a gnu_utils gnu_missing
+  gnu_utils=( awk cp date find sed tail tar xargs )
+  gnu_missing=()
+
+  if is_a_function __rvm_setup_utils_functions_${_system_name}
+  then __rvm_setup_utils_functions_${_system_name} "$@" || return $?
+  else __rvm_setup_utils_functions_Other "$@" || return $?
+  fi
+}
+
+__rvm_setup_utils_functions_Solaris()
+{
+  case "${_system_version}" in
+    (10)
+      gnu_tools_path=/opt/csw/bin
+      gnu_prefix="g"
+      ;;
+    (11)
+      gnu_tools_path=/usr/gnu/bin
+      gnu_prefix=""
+      ;;
+  esac
+
+  if [[ -x $gnu_tools_path/${gnu_prefix}grep ]]
+  then eval "__rvm_grep() { GREP_OPTIONS=\"\" $gnu_tools_path/${gnu_prefix}grep \"\$@\" || return \$?; }"
+  else gnu_missing+=( ${gnu_prefix}grep )
+  fi
+
+  if [[ "${_system_name}" == "OpenIndiana" || "${_system_version}" == "11" ]]
+  then __rvm_stat() { \stat "$@" || return $?; }
+  elif [[ -x $gnu_tools_path/${gnu_prefix}stat ]]
+  then eval "__rvm_stat() { $gnu_tools_path/${gnu_prefix}stat \"\$@\" || return \$?; }"
+  else gnu_missing+=( ${gnu_prefix}stat )
+  fi
+
+  if [[ "${_system_name}" == "SmartOS" ]]
+  then __rvm_which() { \which "$@" || return $?; }
+  elif [[ -x $gnu_tools_path/${gnu_prefix}which ]]
+  then eval "__rvm_which() { $gnu_tools_path/${gnu_prefix}which \"\$@\" || return \$?; }"
+  else gnu_missing+=( ${gnu_prefix}which )
+  fi
+
+  for gnu_util in "${gnu_utils[@]}"
+  do
+    if [[ -x $gnu_tools_path/$gnu_prefix$gnu_util ]]
+    then eval "__rvm_$gnu_util() { $gnu_tools_path/$gnu_prefix$gnu_util \"\$@\" || return \$?; }"
+    else gnu_missing+=( $gnu_prefix$gnu_util )
+    fi
+  done
+
+  if
+    (( ${#gnu_missing[@]} ))
+  then
+    rvm_error "ERROR: Missing GNU tools: ${gnu_missing[@]}. Make sure they are installed in '$gnu_tools_path/' before using RVM!"
+    if [[ "${_system_name} ${_system_version}" == "Solaris 10" ]]
+    then rvm_error "You might want to look at OpenCSW project to install the above mentioned tools (http://opencsw.org/about)"
+    fi
+    exit 200
+  fi
+}
+__rvm_setup_utils_functions_Other()
+{
+  __rvm_grep() { GREP_OPTIONS="" \grep "$@" || return $?; }
+  __rvm_stat() { \stat "$@" || return $?; }
+
+  if command which --skip-alias --skip-functions which >/dev/null 2>&1
+  then __rvm_which() { command which --skip-alias --skip-functions "$@" || return $?; }
+  elif command which whence >/dev/null 2>&1 && command whence whence >/dev/null 2>&1
+  then __rvm_which() { command whence -p "$@" || return $?; }
+  elif command which which >/dev/null 2>&1
+  then __rvm_which() { command which "$@" || return $?; }
+  elif which which >/dev/null 2>&1
+  then __rvm_which() { which "$@" || return $?; }
+  else
+    typeset __result=$?
+    rvm_error "ERROR: Missing proper 'which' command. Make sure it is installed before using RVM!"
+    return ${__result}
+  fi
+
+  for gnu_util in "${gnu_utils[@]}"
+  do eval "__rvm_$gnu_util() { \\$gnu_util \"\$@\" || return \$?; }"
+  done
+}
+
+__rvm_setup_utils_functions || return $?
+
+if
+  [[ ! " ${rvm_tar_options:-} " =~ " --no-same-owner "  ]] &&
+  __rvm_tar --help 2>&1 | __rvm_grep -- --no-same-owner >/dev/null
+then
+  rvm_tar_options="${rvm_tar_options:-}${rvm_tar_options:+ }--no-same-owner"
+fi
+
+# Utils that are not needed for RVM installation
+# but have non-standard paths in Solaris 10
+other_utils=( ant automake autoreconf libtoolize make mount patch readlink )
+
+if
+  [[ "${_system_name} ${_system_version}" == "Solaris 10" ]]
+then
+  __rvm_ant()        { /usr/sfw/bin/ant        "$@" || return $?; }
+  __rvm_automake()   { /opt/csw/bin/automake   "$@" || return $?; }
+  __rvm_autoreconf() { /opt/csw/bin/autoreconf "$@" || return $?; }
+  __rvm_libtoolize() { /opt/csw/bin/libtoolize "$@" || return $?; }
+  __rvm_make()       { /opt/csw/bin/gmake      "$@" || return $?; }
+  __rvm_mount()      { /sbin/mount             "$@" || return $?; }
+  __rvm_patch()      { /opt/csw/bin/gpatch     "$@" || return $?; }
+  __rvm_readlink()   { /opt/csw/bin/greadlink  "$@" || return $?; }
+else
+  for other_util in "${other_utils[@]}"
+  do eval "__rvm_$other_util() { \\$other_util \"\$@\" || return \$?; }"
+  done
+fi
+unset other_util other_utils
+
+__rvm_readlink_deep()
+{
+  eval "
+    while [[ -n \"\${$1}\" && -L \"\${$1}\" ]]
+    do $1=\"\$(__rvm_readlink \"\${$1}\")\"
+    done
+  "
+}
+
+## duplication marker 32fosjfjsznkjneuera48jae
+__rvm_curl_output_control()
+{
+  if
+    (( ${rvm_quiet_curl_flag:-0} == 1 ))
+  then
+    __flags+=( "--silent" "--show-error" )
+  elif
+    [[ " $*" =~ " -s" || " $*" =~ " --silent" ]]
+  then
+    # make sure --show-error is used with --silent
+    [[ " $*" =~ " -S" || " $*" =~ " -sS" || " $*" =~ " --show-error" ]] ||
+    {
+      __flags+=( "--show-error" )
+    }
+  fi
+}
+
+## duplication marker 32fosjfjsznkjneuera48jae
+# -S is automatically added to -s
+__rvm_curl()
+(
+  typeset curl_path
+  if
+    [[ "${_system_name} ${_system_version}" == "Solaris 10" ]] &&
+    ! __rvm_which curl >/dev/null 2>&1
+  then
+    curl_path=/opt/csw/bin/
+  else
+    curl_path=""
+  fi
+  __rvm_which ${curl_path}curl >/dev/null 2>&1 ||
+  {
+    rvm_error "RVM requires 'curl'. Install 'curl' first and try again."
+    return 200
+  }
+
+  typeset -a __flags
+  __flags=( --fail --location )
+
+  # allow overriding default 30 minutes for download, but should be plenty of time
+  if [[ -n "${rvm_curl_flags[*]}" ]]
+  then __flags+=( "${rvm_curl_flags[@]}" )
+  else __flags+=( --max-redirs 10 --max-time 1800 )
+  fi
+
+  [[ "$*" == *"--max-time"* ]] ||
+  [[ "$*" == *"--connect-timeout"* ]] ||
+    __flags+=( --connect-timeout 30 --retry-delay 2 --retry 3 )
+
+  if [[ -n "${rvm_proxy:-}" ]]
+  then __flags+=( --proxy "${rvm_proxy:-}" )
+  fi
+
+  __rvm_curl_output_control
+
+  unset curl
+  __rvm_debug_command ${curl_path}curl "${__flags[@]}" "$@" || return $?
+)
+
+is_parent_of()
+{
+  typeset name pid ppid pname
+  name=$1
+  pid=$2
+  while [[ -n "$pid" && "$pid" != "0" ]]
+  do
+    read ppid pname < <(ps -p $pid -o ppid= -o comm=)
+    if [[ -n "$ppid" && -n "$pname" ]]
+    then
+      if [[ "$pname" == "$name" ]]
+      then
+        echo $pid
+        return 0
+      else
+        pid=$ppid
+      fi
+    else
+      break
+    fi
+  done
+  return 1
+}
+
+__rvm_string_includes()
+{
+  typeset __search __text="$1"
+  shift
+  for __search in "$@"
+  do
+    if [[ " ${__text} " =~ " ${__search} " ]]
+    then return 0
+    fi
+  done
+  return 1
+}
+
+__function_on_stack()
+{
+  __rvm_string_includes "${FUNCNAME[*]}" "$@" || return $?
+}
+
+# read lines from file / stdin(-)
+__rvm_read_lines()
+{
+  typeset IFS
+  # NEW LINE, BE CAREFUL
+  IFS="
+"
+  if [[ "${2:--}" == "-" ]]
+  then eval "$1=( \$( \cat - ) )"
+  else eval "$1=( \$( \cat \"\${2:--}\" ) )"
+  fi
+}
+
+__rvm_ruby_config_save()
+{
+  typeset ruby_path
+  ruby_path="${1:-$rvm_ruby_home/bin/ruby}"
+  case "$ruby_path" in
+    (*/mruby*)
+      __rvm_ruby_config_save_mruby "${2:-${ruby_path%%/bin/ruby}/config}"
+      ;;
+    (*)
+      __rvm_ruby_config_save_generic "$2"
+      ;;
+  esac
+}
+
+__rvm_ruby_config_save_mruby()
+{
+  echo "target_cpu=\"$_system_arch\"" > "$1"
+}
+
+__rvm_ruby_config_save_generic()
+{
+  typeset config_path default_config_path
+  default_config_path="#{RbConfig::CONFIG[\"prefix\"]}/config"
+  config_path="${1:-$default_config_path}"
+  "$ruby_path" -rrbconfig -e '\
+    File.open("'"$config_path"'","w") { |file|
+      RbConfig::CONFIG.sort.each{|key,value|
+        file.write("#{key.gsub(/\.|-/,"_")}=\"#{value.gsub("$","\\$")}\"\n")
+      }
+    }
+  ' >/dev/null 2>&1
+}
+
+__rvm_record_ruby_configs()
+{
+  typeset __dir
+  for __dir in "$rvm_path/rubies/"*
+  do
+    if
+      [[ ! -L "${__dir}" && ! -s "${__dir}/config" && -x "${__dir}/bin/ruby" ]]
+    then
+      __rvm_ruby_config_save "${__dir}/bin/ruby" "${__dir}/config" ||
+      {
+        typeset string="${__dir##*/}"
+        rvm_error "    Can not save config data for ruby: '${string}', most likely it is broken installation and you can:
+    - try fix it: 'rvm reinstall ${string}', OR:
+    - remove  it: 'rvm uninstall ${string} --gems'"
+      }
+    fi
+  done
+}

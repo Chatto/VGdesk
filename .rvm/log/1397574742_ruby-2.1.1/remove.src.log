@@ -1,0 +1,19 @@
+[2014-04-15 10:12:22] __rvm_rm_rf
+__rvm_rm_rf () 
+{ 
+    __rvm_rm_rf_verbose "$@"
+}
+current path: /usr/home/kawaii/vgdesk
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/kawaii//bin:/home/kawaii//.rvm/bin:/home/kawaii/.rvm/bin
+command(2): __rvm_rm_rf /home/kawaii/.rvm/src/ruby-2.1.1
+++ __rvm_rm_rf_verbose /home/kawaii/.rvm/src/ruby-2.1.1
+++ typeset target
+++ target=/home/kawaii/.rvm/src/ruby-2.1.1
+++ [[ -n '' ]]
+++ [[ -n 4.3.0(1)-release ]]
+++ shopt -s extglob
+++ case "${target}" in
+++ [[ -z /home/kawaii/.rvm/src/ruby-2.1.1 ]]
+++ [[ -d /home/kawaii/.rvm/src/ruby-2.1.1 ]]
+++ rm -rf /home/kawaii/.rvm/src/ruby-2.1.1
+++ true

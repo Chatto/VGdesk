@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# Query the rvm key-value database for a specific key
+# Allow overrides from user specifications in $rvm_user_path/db
+__rvm_db()
+{
+  typeset value key variable
+  key="${1:-}"
+  key="${key#go}" # Support for goruby - remove the go
+  variable="${2:-}"
+
+  if [[ -f "$rvm_user_path/db" ]]
+  then value="$( __rvm_db_ "$rvm_user_path/db"   "$key" )"
+  fi
+  if [[ -z "$value" && -f "$rvm_path/config/db" ]]
+  then value="$( __rvm_db_ "$rvm_path/config/db" "$key" )"
+  fi
+  [[ -n "$value" ]] || return 1
+  if [[ -n "$variable" ]]
+  then eval "$variable='$value'"
+  else echo "$value"
+  fi
+  true # for OSX
+}
+
+__rvm_db_remove()
+{
+  if
+    [[ -f "$1" ]]
+  then
+    __rvm_sed -e "s#^$2=.*\$##"  -e '/^$/d' "$1" > "$1.new"
+    \mv -f "$1.new" "$1"
+  fi
+}
+
+__rvm_db_add()
+{
+  typeset __dir="${1%/*}"
+  if   [[ -f "${1}" ]]
+  then __rvm_db_remove "${1}" "${2}"
+  elif [[ ! -d "${__dir}" ]]
+  then mkdir -p "${__dir}"
+  fi
+  printf "%b=%b\n" "$2" "$3" >> "$1"
+}
+
+__rvm_db_get()
+{
+  if [[ -f "$1" ]]
+  then __rvm_grep "^$2=" "$1" | __rvm_sed -e "s#^$2=##" -e '/^$/d'
+  else echo -n ""
+  fi
+}
+
+__rvm_db_()
+{
+  typeset __db __key __value
+  __db="$1"
+  __key="${2%%\?*}" # remove ?x=y from urls
+  shift 2
+  __value="$*"
+  case "${__value}" in
+    (unset|delete)
+      __rvm_db_remove "${__db}" "${__key}"
+      ;;
+    ("")
+      __rvm_db_get    "${__db}" "${__key}"
+      ;;
+    (*)
+      __rvm_db_add    "${__db}" "${__key}" "${__value}"
+      ;;
+  esac
+}

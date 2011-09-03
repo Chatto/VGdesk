@@ -1,0 +1,242 @@
+#!/usr/bin/env bash
+
+requirements_find_osx_fink()
+{
+  if # find macports in PATH
+    __rvm_which fink >/dev/null 2>&1
+  then
+    return 0
+  else # find fink out of PATH and link to rvm/bin
+    typeset __binary
+    for __binary in ~/sw/bin/fink ~/.sw/bin/fink /sw/bin/fink /usr/local/bin/fink
+    do
+      if
+        [[ -f "${__binary}" && -s "${__binary}" && -x "${__binary}" ]]
+      then
+        PATH="$PATH:${__binary%/*}"
+        return 0
+      fi
+    done
+    return 1
+  fi
+}
+
+requirements_osx_fink_path()
+(
+  typeset fink_binary="$( __rvm_which fink )"
+  __rvm_readlink_deep fink_binary
+  echo "${fink_binary%/bin/fink}"
+)
+
+requirements_osx_fink_packages_path()
+{
+  __rvm_awk '/Basepath:/ {print$2}' < "$(requirements_osx_fink_path)"/etc/fink.conf
+}
+
+__rvm_fink_sudo()
+{
+  if
+    [[ -w "$( requirements_osx_fink_path )" &&
+       -w "$( requirements_osx_fink_packages_path )"
+    ]]
+  then
+    "$@" || return $?
+  else
+    __rvm_try_sudo "$@" || return $?
+  fi
+}
+
+requirements_osx_fink_lib_installed()
+{
+  fink list -i $1 2>/dev/null | __rvm_awk 'BEGIN{result=1} $2=="'"$1"'" {result=0} END{exit result}' || return $?
+}
+
+requirements_osx_fink_libs_install()
+{
+  __rvm_fink_sudo fink --yes install "$@"  ||
+  {
+    typeset ret=$?
+    rvm_warn "There were package installation errors, make sure to read the log."
+    return $ret
+  }
+}
+
+requirements_osx_fink_update_system()
+{
+  # enable unstable for needed packages
+  __rvm_fink_sudo __rvm_sed -i'' -e 's#^\(Trees: .*\)$#\1 unstable/main#' "$(requirements_osx_fink_path)"/etc/fink.conf
+
+  # update package definitions
+  __rvm_log_command fink_update "Updating fink" __rvm_fink_sudo fink selfupdate || return $?
+}
+
+requirements_osx_fink_gcc_version_detect()
+{
+  if
+    __rvm_version_compare "${_system_version}" -le 10.5
+  then
+    fink_libs+=( gcc43 )
+  elif
+    __rvm_version_compare "${_system_version}" -le 10.6
+  then
+    fink_libs+=( gcc45 )
+  elif
+    __rvm_version_compare "${_system_version}" -le 10.7
+  then
+    fink_libs+=( gcc46 )
+  else # 10.8+
+    fink_libs+=( gcc48 )
+  fi
+}
+
+requirements_osx_fink_libs_default_tools()
+{
+  fink_libs+=( autoconf2.6 automake1.13 pkgconfig )
+
+  if
+    __rvm_version_compare "${_system_version}" -le 10.6
+  then
+    fink_libs+=( libtool14 )
+  fi
+
+  if
+    ! __ruby_clang_ok "$1" &&
+    [[ -z "${selected_compiler}" || "${selected_compiler}" =~ "gcc-4.2" ]]
+  then
+    # install gcc only if no gcc-4.2 available, prevents problems with gcc-4.2 on OSX 10.6
+    __rvm_which gcc-4.2 >/dev/null || requirements_osx_fink_gcc_version_detect
+  fi
+}
+
+requirements_osx_fink_libs_default_libs()
+{
+  typeset __lib
+
+  for __lib in libyaml readline6 libksba8 sqlite3
+  do
+    fink_libs+=( ${__lib} ${__lib}-shlibs )
+  done
+
+  case "$1" in
+    (ruby-1.8*|ree-1.8*)
+      rvm_error "Ruby: $1 is not supported with Fink, consider switching Autolibs to Macports or Homebrew:
+    rvm autolibs port # OR:
+    rvm autolibs brew
+"
+      return 12
+      ;;
+    (*)
+      fink_libs+=( openssl openssl100-dev openssl100-shlibs )
+      ;;
+  esac
+  fink_libs+=( ca-bundle )
+}
+
+requirements_osx_fink_libs_default()
+{
+  # FIXME: what packages are needed for installation
+  # lib search => http://pdb.finkproject.org/pdb/browse.php?summary=openssl
+  typeset -a fink_libs
+  fink_libs=()
+
+  requirements_osx_fink_libs_default_tools "$@" || return $?
+  requirements_osx_fink_libs_default_libs  "$@" || return $?
+
+  requirements_check "${fink_libs[@]}" || return $?
+}
+
+requirements_osx_fink_define()
+{
+  case "$1" in
+    (rvm)
+      true
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        __rvm_which git >/dev/null || requirements_check git
+        if is_jruby_post17 "$1"
+        then requirements_check_custom_after mvn=maven
+        fi
+      fi
+      requiremnts_osx_java_fail  || return $?
+      ;;
+    (ir*)
+      __rvm_which mono >/dev/null 2>&1 || return $?
+      ;;
+    (opal)
+      requirements_check node
+      ;;
+    (*-head)
+      __rvm_which git >/dev/null || requirements_check git
+      requirements_osx_fink_libs_default "$1"
+      ;;
+    (*)
+      requirements_osx_fink_libs_default "$1"
+      ;;
+  esac
+}
+
+requirements_osx_fink_libs_configure()
+{
+  typeset package fink_lib fink_lib_prefix
+  package="$1"
+
+  if
+    # FIXME: how to find out package paths
+    fink_lib_prefix="$( requirements_osx_fink_packages_path )" &&
+    [[ -n "${fink_lib_prefix}" && -d "${fink_lib_prefix}" ]]
+  then
+    __rvm_update_configure_opt_dir "${package}" "${fink_lib_prefix}"
+  fi
+}
+
+requirements_osx_fink_after()
+{
+  requirements_osx_fink_libs_configure "$1" || return $?
+
+  case "$1" in
+    (jruby*) true ;;
+    (*) requirements_osx_fink_after_update_certs_openssl ;;
+  esac
+}
+
+requirements_osx_fink_after_update_certs_openssl()
+{
+  requirements_osx_update_openssl_cert "$(requirements_osx_fink_packages_path)/bin/openssl" || return $?
+}
+
+requirements_osx_fink_install_fink()
+{
+  typeset fink_home fink_version
+  fink_version=0.34.8
+  rvm_warn "About to install fink-${fink_version}, press ENTER to use default answers.
+Make sure to watch the graphical login, questions for X11 installation will appear!"
+
+  mkdir -p "${rvm_src_path}/fink-${fink_version}" || return $?
+  __rvm_curl http://downloads.sourceforge.net/fink/fink-${fink_version}.tar.gz |
+    tar xz --strip 1 -C "${rvm_src_path}/fink-${fink_version}"
+  __rvm_check_pipestatus ${PIPESTATUS[@]} ${pipestatus[@]} || return $?
+  cd "${rvm_src_path}/fink-${fink_version}"
+
+  __rvm_try_sudo ./bootstrap /sw && /sw/bin/pathsetup.sh || return $?
+
+  PATH="$PATH:/sw/bin"
+}
+
+requirements_osx_fink_ensure_fink_available()
+{
+  __rvm_which fink >/dev/null ||
+  {
+    rvm_requiremnts_fail_or_run_action 2 \
+      "Requested installation with fink libs, but fink is not available." \
+      requirements_osx_fink_install_fink ||
+      return $?
+  }
+}
+
+requirements_osx_fink_before()
+{
+  requirements_osx_fink_ensure_fink_available || return $?
+}

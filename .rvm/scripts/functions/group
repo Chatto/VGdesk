@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+__rvm_add_user_to_group()
+{
+  case "${_system_type}" in
+    "OpenBSD")
+      __rvm_try_sudo usermod -G "$1" "$2"
+      ;;
+    "FreeBSD"|"DragonFly")
+      __rvm_try_sudo pw usermod "$2" -G "$1"
+      ;;
+    "Linux")
+      if [[ -f "/etc/SuSE-release" ]] ; then
+        __rvm_try_sudo groupmod -A "$2" "$1"
+      else
+        __rvm_try_sudo /usr/sbin/usermod -a -G "$1" "$2"
+      fi
+    ;;
+    "Darwin")
+      __rvm_try_sudo dscl . -append "/Groups/$1" GroupMembership "$2"
+      ;;
+    "SunOS")
+      groups="$(id -G "$2") \"$1\""
+      __rvm_try_sudo usermod -G "${1// /, }" "$2"
+      ;;
+  esac
+}
+
+__rvm_show_user_groups()
+{
+  groups "$1" | __rvm_sed -e 's/.*:[[:space:]]*//' | \tr ' ' $'\n'
+}
+
+__rvm_is_user_in_group()
+{
+  __rvm_show_user_groups "$2" | __rvm_grep "^$1$" >/dev/null
+}
+
+__rvm_list_all_users()
+{
+  case "${_system_type}" in
+    "Darwin")
+      dscl . -search /Users PrimaryGroupID 20 | __rvm_grep PrimaryGroupID | cut -f 1
+      ;;
+    *)
+      __rvm_grep -xF -f <(\cat /etc/passwd | cut -d: -f1) <(__rvm_find /home -mindepth 1 -maxdepth 1 -type d | cut -d '/' -f 3)
+      ;;
+  esac
+}
+
+__rvm_group_exists()
+{
+  case "${_system_type}" in
+    (Darwin)
+      dscl . -read "/Groups/$1" 1>/dev/null 2>&1 || return $?
+      ;;
+    (*)
+      __rvm_grep "$1" /etc/group >/dev/null 2>&1
+      ;;
+  esac
+}
+
+__rvm_create_group()
+{
+  typeset -a __group_params
+  __group_params=()
+
+  if [[ -n "${2:-}" ]]
+  then __group_params+=( -g "$2" )
+  fi
+
+  case "${_system_type}" in
+    (Linux|Sunos)
+      __rvm_try_sudo groupadd "${__group_params[@]}" "$1"
+      ;;
+    (BSD)
+      case "${_system_name}" in
+        (OpenBSD)
+          __rvm_try_sudo groupadd "${__group_params[@]}" "$1"
+          ;;
+        (FreeBSD|DragonFly)
+          __rvm_try_sudo pw groupadd "${__group_params[@]}" "$1" -q
+          ;;
+        esac
+        ;;
+    (Darwin)
+      typeset _new_group_id
+      if
+        [[ -n "${2:-}" ]]
+      then
+        _new_group_id="$2"
+      else
+        _new_group_id="501" #only gids > 500 show up in user preferences
+        #Find an open gid
+        while true
+        do
+          name=$(dscl . search /groups PrimaryGroupID ${_new_group_id} | cut -f1 -s)
+          if [[ -z "$name" ]]
+          then break
+          fi
+          _new_group_id=$(( _new_group_id + 1 ))
+        done
+      fi
+      # Create the group, isn't OSX "fun"?! :)
+      # Thanks for the assist frogor of ##osx-server on freenode! Appreciate the assist!
+      __rvm_try_sudo dscl . -create "/Groups/$1" gid "${_new_group_id}"
+      ;;
+  esac
+}

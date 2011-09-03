@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/base"
+source "$rvm_scripts_path/functions/gemset"
+
+rvm_docs_ruby_string="$(__rvm_env_string)"
+rvm_docs_ruby_string="${rvm_docs_ruby_string%%${rvm_gemset_seperator:-"@"}*}"
+
+if [[ "$rvm_docs_ruby_string" == "system" || -z "$rvm_docs_ruby_string" ]]
+then
+  rvm_error "Currently 'rvm docs ...' does not work with non-rvm rubies."
+  exit 1
+fi
+
+install_ruby_source()
+{
+  [[ -d "${rvm_src_path}/$rvm_docs_ruby_string" ]] || (
+    action="fetch"
+    rubies_string="$rvm_docs_ruby_string"
+    source "$rvm_scripts_path"/manage
+  ) || {
+    rvm_error "'rvm docs ...' requires ruby sources to be available but fetching failed, run \`rvm reinstall $rvm_docs_ruby_string --disable-binary\`"
+    exit 2
+  }
+}
+
+rvm_docs_type="${rvm_docs_type:-rdoc}"
+
+# Ensure we have the doc directories.
+[[ -d "${rvm_docs_path:-"$rvm_path/docs"}" ]] ||
+  mkdir -p "${rvm_docs_path:-"$rvm_path/docs"}/rdoc" "${rvm_docs_path:-"$rvm_path/docs"}/yard"
+
+open_docs()
+{
+  if [[ -s "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type/index.html" ]]
+  then
+    if
+      [[ "${DESKTOP_SESSION}" == "gnome" ]] && builtin command -v gnome-open >/dev/null
+    then
+      gnome-open "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type/index.html" &>/dev/null
+    elif
+      [[ -n "${XDG_SESSION_COOKIE}" || -n "${XDG_SESSION_ID}" ]] && builtin command -v xdg-open >/dev/null
+    then
+      xdg-open "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type/index.html" &>/dev/null
+    elif
+      builtin command -v open >/dev/null
+    then
+      open "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type/index.html"
+    else
+      rvm_error "None of open, xdg-open or gnome-open were found, in order to open the docs one of these two are required. \n(OR you can let me know how else to open the html in your browser from comand line on your OS :) )"
+    fi
+  else
+    rvm_error "$rvm_docs_type docs are missing, perhaps run 'rvm docs generate' first?"
+  fi
+}
+
+run_rdoc()
+{
+  update_rdoc
+  if rdoc -V --help >/dev/null 2>&1
+  then rdoc -V "$@" || return $?
+  else rdoc    "$@" || return $?
+  fi
+}
+
+generate_ri()
+{
+  install_ruby_source
+  (
+    __rvm_cd "${rvm_src_path}/$rvm_docs_ruby_string/"
+    __rvm_log_command "generate_ri" "Generating ri documentation" run_rdoc -a --ri-site
+  )
+}
+
+generate_rdoc()
+{
+  install_ruby_source
+  (
+    __rvm_cd "${rvm_src_path}/$rvm_docs_ruby_string/"
+    if
+      gem list | __rvm_grep ^hanna >/dev/null 2>&1
+    then
+      __rvm_log_command "generate_hanna" "Generating hanna documentation" \
+        hanna -o "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type" --inline-source --line-numbers --fmt=html
+    else
+      __rvm_log_command "generate_rdoc" "Generating rdoc documentation" \
+        run_rdoc -a -o "${rvm_docs_path:-"$rvm_path/docs"}/$rvm_docs_ruby_string/$rvm_docs_type"
+    fi
+  )
+}
+
+generate_gems()
+{
+  __rvm_log_command "generate_gems" "Generating gems documentation" \gem rdoc --all --ri
+}
+
+update_rdoc()
+{
+  if
+    (( rdoc_installed == 0 ))
+  then
+    rdoc_installed=1
+    gem_install rdoc
+  fi
+}
+
+install_rdoc_data()
+{
+  __rvm_use ${rvm_docs_ruby_string%%@*}@global
+  update_rdoc
+  gem list rdoc-data | __rvm_grep "^rdoc" || gem install rdoc-data
+  rdoc-data --install
+}
+
+generate_docs()
+{
+  case "${rvm_docs_ruby_string}" in
+    (*1.8.7*|*1.9.2*|*1.9.3*|jruby*|rbx*)
+      __rvm_log_command install_rdoc_data "Installing rdoc-data" \
+        install_rdoc_data || return $?
+      ;;
+    (*)
+      generate_ri
+      generate_rdoc
+      ;;
+  esac
+  generate_gems
+}
+
+args=($*)
+action="${args[0]}"
+args=($(echo ${args[@]:1})) # Strip trailing / leading / extra spacing.
+rdoc_installed=0
+
+case "$action" in
+  rdoc_data)     install_rdoc_data ;;
+  generate)      generate_docs ;;
+  generate-ri)   generate_ri   ;;
+  generate-rdoc) generate_rdoc ;;
+  generate-gems) generate_gems ;;
+  open)          open_docs     ;;
+  help)          rvm_help docs ;;
+  *)
+    rvm_help docs
+    exit 1
+    ;;
+esac

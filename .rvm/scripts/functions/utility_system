@@ -1,0 +1,431 @@
+#!/usr/bin/env bash
+
+__rvm_detect_system()
+{
+  unset  _system_type _system_name _system_version _system_arch
+  export _system_type _system_name _system_version _system_arch
+  _system_info="$(command uname -a)"
+  _system_type="unknown"
+  _system_name="unknown"
+  _system_name_lowercase="unknown"
+  _system_version="unknown"
+  _system_arch="$(command uname -m)"
+  case "$(command uname)" in
+    (Linux|GNU*)
+      _system_type="Linux"
+      if
+        [[ -f /etc/lsb-release ]] &&
+        GREP_OPTIONS="" \grep "DISTRIB_ID=Ubuntu"    /etc/lsb-release >/dev/null
+      then
+        _system_name="Ubuntu"
+        _system_version="$(awk -F'=' '$1=="DISTRIB_RELEASE"{print $2}' /etc/lsb-release)"
+        _system_arch="$( dpkg --print-architecture )"
+      elif
+        [[ -f /etc/lsb-release ]] &&
+        GREP_OPTIONS="" \grep "DISTRIB_ID=LinuxMint" /etc/lsb-release >/dev/null
+      then
+        _system_name="Mint"
+        _system_version="$(awk -F'=' '$1=="DISTRIB_RELEASE"{print $2}' /etc/lsb-release)"
+        _system_arch="$( dpkg --print-architecture )"
+      elif
+        [[ -f /etc/lsb-release ]] &&
+        GREP_OPTIONS="" \grep "DISTRIB_ID=ManjaroLinux" /etc/lsb-release >/dev/null
+      then
+        _system_name="Manjaro"
+        _system_version="$(awk -F'=' '$1=="DISTRIB_RELEASE"{print $2}' /etc/lsb-release)"
+      elif
+        [[ -f /etc/altlinux-release ]]
+      then
+        _system_name="Arch"
+        _system_version="libc-$(ldd --version  | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /etc/os-release ]] &&
+        GREP_OPTIONS="" \grep "ID=opensuse" /etc/os-release >/dev/null
+      then
+        _system_name="OpenSuSE"
+        _system_version="$(awk -F'=' '$1=="VERSION_ID"{gsub(/"/,"");print $2}' /etc/os-release)" #'
+      elif
+        [[ -f /etc/SuSE-release ]]
+      then
+        _system_name="SuSE"
+        _system_version="$(
+          \awk -F'=' '{gsub(/ /,"")} $1~/VERSION/ {version=$2} $1~/PATCHLEVEL/ {patch=$2} END {print version"."patch}' < /etc/SuSE-release
+        )"
+      elif
+        [[ -f /etc/debian_version ]]
+      then
+        _system_name="Debian"
+        _system_version="$(\cat /etc/debian_version | \awk -F. '{print $1}')"
+        _system_arch="$( dpkg --print-architecture )"
+      elif
+        [[ -f /etc/os-release ]] &&
+        GREP_OPTIONS="" \grep "ID=debian" /etc/os-release >/dev/null
+      then
+        _system_name="Debian"
+        _system_version="$(awk -F'=' '$1=="VERSION_ID"{gsub(/"/,"");print $2}' /etc/os-release | \awk -F. '{print $1}')" #'
+        _system_arch="$( dpkg --print-architecture )"
+      elif
+        [[ -f /etc/system-release ]] &&
+        GREP_OPTIONS="" \grep "Amazon Linux AMI" /etc/system-release >/dev/null
+      then
+        _system_name="Amazon"
+        _system_version="$(GREP_OPTIONS="" \grep -Eo '[0-9\.]+' /etc/system-release | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /etc/sabayon-release ]]
+      then
+        # needs to be before gentoo
+        _system_name="Sabayon"
+        _system_version="$(\cat /etc/sabayon-release | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /etc/gentoo-release ]]
+      then
+        _system_name="Gentoo"
+        _system_version="base-$(\cat /etc/gentoo-release | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /etc/arch-release ]]
+      then
+        _system_name="Arch"
+        _system_version="libc-$(ldd --version  | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /proc/devices ]] &&
+        GREP_OPTIONS="" \grep -Eo "synobios" /proc/devices >/dev/null
+      then
+        _system_type="BSD"
+        _system_name="Synology"
+        _system_version="libc-$(ldd --version  | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      elif
+        [[ -f /etc/fedora-release ]]
+      then
+        _system_name="Fedora"
+        _system_version="$(GREP_OPTIONS="" \grep -Eo '[0-9]+' /etc/fedora-release)"
+      elif
+        [[ -f /etc/centos-release ]]
+      then
+        _system_name="CentOS"
+        _system_version="$(GREP_OPTIONS="" \grep -Eo '[0-9\.]+' /etc/centos-release  | \awk -F. '{print $1}')"
+      elif
+        [[ -f /etc/redhat-release ]]
+      then
+        _system_name="$(
+          GREP_OPTIONS="" \grep -Eo 'CentOS|ClearOS|Mageia|Scientific' /etc/redhat-release 2>/dev/null
+        )" ||
+        _system_name="RedHat"
+        _system_version="$(GREP_OPTIONS="" \grep -Eo '[0-9\.]+' /etc/redhat-release  | \awk -F. 'NR==1{print $1}')"
+      else
+        _system_version="libc-$(ldd --version  | \awk 'NR==1 {print $NF}' | \awk -F. '{print $1"."$2}')"
+      fi
+      ;;
+    (SunOS)
+      _system_type="SunOS"
+      _system_name="Solaris"
+      _system_version="$(command uname -v)"
+      _system_arch="$(command uname -p)"
+      if
+        [[ "${_system_version}" =~ ^joyent* ]]
+      then
+        _system_name="SmartOS"
+        _system_version="${_system_version#* }"
+      elif
+        [[ "${_system_version}" =~ ^omnios* ]]
+      then
+        _system_name="OmniOS"
+        _system_version="${_system_version#* }"
+      elif
+        [[ "${_system_version}" =~ ^oi* || "${_system_version}" =~ ^illumos* ]]
+      then
+        _system_name="OpenIndiana"
+        _system_version="${_system_version#* }"
+      elif
+        [[ "${_system_version}" =~ Generic* ]]
+      then
+        _system_version="10"
+      elif
+        [[ "${_system_version}" =~ 11* ]]
+      then
+        _system_version="11"
+      # is else needed here?
+      fi
+      ;;
+    (FreeBSD)
+      _system_type="BSD"
+      _system_name="FreeBSD"
+      _system_version="$(command uname -r)"
+      _system_version="${_system_version%%-*}"
+      ;;
+    (OpenBSD)
+      _system_type="BSD"
+      _system_name="OpenBSD"
+      _system_version="$(command uname -r)"
+      ;;
+    (DragonFly)
+      _system_type="BSD"
+      _system_name="DragonFly"
+      _system_version="$(command uname -r)"
+      _system_version="${_system_version%%-*}"
+      ;;
+    (NetBSD)
+      _system_type="BSD"
+      _system_name="NetBSD"
+      _system_version_full="$(command uname -r)"
+      _system_version="$(echo ${_system_version_full} | \awk -F. '{print $1"."$2}')"
+      ;;
+    (Darwin)
+      _system_type="Darwin"
+      _system_name="OSX"
+      _system_version="$(sw_vers -productVersion | \awk -F. '{print $1"."$2}')"
+      ;;
+    (CYGWIN*)
+      _system_type="Windows"
+      _system_name="Cygwin"
+      ;;
+    (MINGW*)
+      _system_type="Windows"
+      _system_name="Mingw"
+      ;;
+    (*)
+      return 1
+      ;;
+  esac
+  _system_type="${_system_type//[ \/]/_}"
+  _system_name="${_system_name//[ \/]/_}"
+  _system_name_lowercase="$(echo ${_system_name} | \tr '[A-Z]' '[a-z]')"
+  _system_version="${_system_version//[ \/]/_}"
+  _system_arch="${_system_arch//[ \/]/_}"
+  _system_arch="${_system_arch/amd64/x86_64}"
+  _system_arch="${_system_arch/i[123456789]86/i386}"
+}
+
+__rvm_detect_system_override()
+{
+  typeset _var
+  for _var in system_type system_name system_name_lowercase system_version system_arch
+  do __rvm_db ${_var} _${_var}
+  done
+}
+
+__rvm_detect_system
+__rvm_detect_system_override
+
+# params: [printf_if=-] [suffix]
+__rvm_system_path()
+{
+  rvm_remote_server_path="$(__rvm_db "rvm_remote_server_path${2:-}")"
+  [[ -n "${rvm_remote_server_path}" ]] ||
+  rvm_remote_server_path="${_system_name_lowercase}/${_system_version}/${_system_arch}"
+  if [[ "${1:-}" == "-" ]]
+  then printf "%b" "${rvm_remote_server_path}\n"
+  fi
+}
+
+__rvm_remote_extension()
+{
+  case "$1" in
+    *.tar.*)
+      rvm_remote_extension="tar${1##*tar}"
+      ;;
+    jruby-*)
+      rvm_remote_extension="tar.gz"
+      ;;
+    *)
+      rvm_remote_extension="tar.bz2"
+      ;;
+  esac
+  [[ "$2" != "-" ]] || printf "%b" "${rvm_remote_extension}"
+}
+
+# params: ruby-string-to-transform
+__rvm_ruby_package_file()
+{
+  case "$1" in
+    *.tar.*)
+      rvm_ruby_package_file="/$1"
+      ;;
+    rbx*|rubinius*)
+      rvm_ruby_package_file="/${1//rbx-/rubinius-}.$(__rvm_remote_extension "$1" -)"
+      ;;
+    jruby-head)
+      rvm_ruby_package_file="/jruby-head.$(__rvm_remote_extension "$1" -)"
+      ;;
+    jruby*)
+      typeset __version
+      __version="$(
+        rvm_ruby_string="$1"
+        rvm_remote_flag=0 __rvm_ruby_string
+        echo "$rvm_ruby_version"
+      )"
+      rvm_ruby_package_file="/${__version}/jruby-bin-${__version}.$(__rvm_remote_extension "$1" -)"
+      ;;
+    "")
+      rvm_ruby_package_file=""
+      ;;
+    ruby*)
+      rvm_ruby_package_file="/$1.$(__rvm_remote_extension "$1" -)"
+      ;;
+    *)
+      rvm_ruby_package_file="/ruby-$1.$(__rvm_remote_extension "$1" -)"
+      ;;
+  esac
+}
+
+__rvm_calculate_remote_file()
+{
+  rvm_remote_server_url="$( __rvm_db "rvm_remote_server_url${3:-}" )"
+  [[ -n "$rvm_remote_server_url" ]] || {
+    rvm_debug "rvm_remote_server_url${3:-} not found"
+    return $1
+  }
+  __rvm_system_path "" "${3:-}"
+  __rvm_ruby_package_file "${4:-}"
+  __remote_file="${rvm_remote_server_url}/${rvm_remote_server_path}${rvm_ruby_package_file}"
+}
+
+# params: return_on_end return_on_failed_link [suffix] [file]
+__rvm_remote_server_path_single()
+{
+  typeset __remote_file
+  __rvm_calculate_remote_file "$@" || return $?
+  if
+    [[ -z "${__remote_file:-}" ]]
+  then
+    rvm_debug "No remote file name found"
+    return $1
+  elif
+    file_exists_at_url "${__remote_file}"
+  then
+    printf "%b" "$( __rvm_db "rvm_remote_server_verify_downloads${3:-}" ):${__remote_file}"
+  elif
+    [[ -f "${rvm_archives_path}/${rvm_ruby_package_file##*/}" && "${rvm_ruby_package_file##*/}" == *bin-* ]]
+  then
+    printf "%b" "$( __rvm_db "rvm_remote_server_verify_downloads${3:-}" ):${rvm_archives_path}/${rvm_ruby_package_file##*/}"
+  else
+    rvm_debug "Remote file does not exist ${__remote_file}"
+    return $2
+  fi
+}
+
+# params: [file_name]
+__rvm_remote_server_path()
+{
+  typeset _iterator
+  _iterator=""
+  while ! __rvm_remote_server_path_single 0 1 "${_iterator}" "${1:-}"
+  do : $(( _iterator+=1 ))
+  done
+}
+
+__list_remote_all()
+{
+  typeset _iterator rvm_remote_server_url rvm_remote_server_path
+  _iterator=""
+  while
+    __rvm_db "rvm_remote_server_url${_iterator:-}" rvm_remote_server_url
+  do
+    __rvm_system_path "" "${_iterator}"
+    rvm_debug "__list_remote_all${_iterator:-} $rvm_remote_server_url $rvm_remote_server_path"
+    __list_remote_for "${rvm_remote_server_url}" "$rvm_remote_server_path"
+    : $(( _iterator+=1 ))
+  done | \sort -u | __rvm_version_sort
+}
+
+__list_remote_for()
+{
+  __list_remote_for_local "$@" ||
+  __list_remote_for_index "$@" ||
+  __list_remote_for_s3    "$@" ||
+  return $?
+}
+
+__list_remote_for_local()
+{
+  typeset __status1 __status2
+  __status1=0
+  __status2=0
+  if [[ -f $rvm_user_path/remote ]]
+  then __rvm_grep "${1}/${2}" < $rvm_user_path/remote || __status1=$?
+  fi
+  __rvm_grep "${1}/${2}" < $rvm_path/config/remote || __status2=$?
+  if (( __status1 || __status2 ))
+  then return 1
+  else rvm_debug "__list_remote_for_local found"
+  fi
+  true # for OSX
+}
+
+__list_remote_for_index()
+{
+  if
+    file_exists_at_url "${1}/index.txt"
+  then
+    rvm_debug "__list_remote_for_index ${1}/index.txt"
+    __rvm_curl -s "${1}/index.txt" | GREP_OPTIONS="" \grep -E "${1}/${2}/.*\.tar\.(gz|bz2)$"
+  elif
+    file_exists_at_url "${1}/${2}/index.txt"
+  then
+    rvm_debug "__list_remote_for_index ${1}/${2}/index.txt"
+    __rvm_curl -s "${1}/${2}/index.txt" | GREP_OPTIONS="" \grep -E "${1}/${2}/.*\.tar\.(gz|bz2)$"
+  else
+    return 1
+  fi
+  true # for OSX
+}
+
+__list_remote_for_s3()
+{
+  curl -ILfs "${1}" | grep "Server: AmazonS3" >/dev/null || return $?
+  typeset __tmp_name __iterator __next __local_url
+  __iterator=0
+  __next=""
+  __tmp_name="$(
+    : ${TMPDIR:=${rvm_tmp_path:-/tmp}}
+    mktemp "${TMPDIR}/tmp.XXXXXXXXXXXXXXXXXX"
+  )"
+  while
+    [[ __iterator -eq 0 || -n "${__next}" ]]
+  do
+    __local_url="${1}?prefix=${2}/${__next:+&marker=${__next}}"
+    rvm_debug "__list_remote_for_s3-${__iterator} ${__local_url}"
+    __rvm_curl -s "${__local_url}" > "${__tmp_name}${__iterator}"
+
+    GREP_OPTIONS="" \grep -oE "<Key>[^<]*</Key>" < "${__tmp_name}${__iterator}" |
+    __rvm_awk -F"[<>]" '{print $3}' > "${__tmp_name}"
+
+    if __rvm_grep "<IsTruncated>true</IsTruncated>" < "${__tmp_name}${__iterator}"
+    then __next="$(tail -n 1 "${__tmp_name}")"
+    else __next=""
+    fi
+
+    rm "${__tmp_name}${__iterator}"
+    : $(( __iterator+=1 ))
+  done
+  GREP_OPTIONS="" \grep -E "${2}/.*\.tar\.(gz|bz2)$" < "${__tmp_name}" |
+  GREP_OPTIONS="" \grep -v -- "-src-" |
+  __rvm_awk "{ print "'"'$1/'"'"\$1 }"
+  rm "${__tmp_name}"*
+}
+
+__rvm_get_user_shell()
+{
+  case "${_system_type}:${_system_name}" in
+    (Linux:*|SunOS:*|BSD:*|*:Cygwin)
+      __shell="$( getent passwd $USER )" ||
+      {
+        rvm_error "Error checking user shell via getent ... something went wrong, report a bug."
+        return 2
+      }
+      echo "${__shell##*:}"
+      ;;
+    (Darwin:*)
+      typeset __version
+      __version="$(dscl localhost -read "/Search/Users/$USER" UserShell)" ||
+      {
+        rvm_error "Error checking user shell via dscl ... something went wrong, report a bug."
+        return 3
+      }
+      echo ${__version#*: }
+      ;;
+    (*)
+      rvm_error "Do not know how to check user shell on '$(command uname)'."
+      return 1
+      ;;
+  esac
+}

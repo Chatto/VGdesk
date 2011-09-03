@@ -1,0 +1,18 @@
+[2014-04-15 07:41:33] __rvm_patch
+__rvm_patch () 
+{ 
+    \patch "$@" || return $?
+}
+current path: /home/sekai_cms/.rvm/src/readline-5.2
+PATH=/sbin:/bin:/usr/sbin:/usr/games:/usr/local/sbin:/usr/local/bin:/home/sekai_cms/bin:/home/sekai_cms/.rvm/bin:/usr/bin
+command(5): __rvm_patch -p0 -f -i /home/sekai_cms/.rvm/patches/readline-5.2/shobj-conf.patch
++ patch -p0 -f -i /home/sekai_cms/.rvm/patches/readline-5.2/shobj-conf.patch
+Hmm...  Looks like a unified diff to me...
+The text leading up to this was:
+--------------------------
+|--- support/shobj-conf.orig	2010-10-01 22:46:26.000000000 +0900
+|+++ support/shobj-conf	2010-10-01 22:46:50.000000000 +0900
+--------------------------
+Patching file support/shobj-conf using Plan A...
+Hunk #1 succeeded at 171.
+done

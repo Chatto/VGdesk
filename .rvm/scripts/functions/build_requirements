@@ -1,0 +1,260 @@
+#!/usr/bin/env bash
+
+source "$rvm_scripts_path/functions/build_requirements_helpers"
+
+__rvm_requirements_run()
+{
+  typeset -a packages_installed packages_missing packages_to_install packages_flags
+  typeset -a packages_custom packages_custom_after
+  typeset __type __lib_type __iterator
+  __type=$1
+  __lib_type=$1
+  shift
+  for __iterator in load reset before define summary update custom install custom_after after
+  do
+    __rvm_requirements_run_${__iterator} "$@" || return $?
+  done
+}
+
+__rvm_requirements_run_load()
+{
+  if
+    is_a_function requirements_${__type}_before ||
+    is_a_function requirements_${__type}_define
+  then
+    rvm_debug "requirements code for ${__type} already loaded"
+  else
+    [[ -s "$rvm_scripts_path/functions/requirements/${__type}" ]] ||
+    {
+      rvm_error "Requirements support for ${__type} is not implemented yet,
+report a bug here => https://github.com/wayneeseguin/rvm/issues"
+      return 1
+    }
+    source "$rvm_scripts_path/functions/requirements/${__type}"
+    if
+      is_a_function requirements_${__type}_before ||
+      is_a_function requirements_${__type}_define
+    then
+      rvm_debug "requirements code for ${__type} loaded"
+    else
+      rvm_error "Failed loading requirements for ${__type}!"
+      return 1
+    fi
+  fi
+}
+
+__rvm_requirements_run_reset()
+{
+  packages_installed=()
+  packages_missing=()
+  packages_to_install=()
+  packages_flags=()
+  packages_custom=()
+  packages_custom_after=()
+}
+
+__rvm_requirements_run_before()
+{
+  if is_a_function requirements_${__type}_before
+  then requirements_${__type}_before "$@" || return $?
+  fi
+  if [[ "${__lib_type}" != "${__type}" ]]
+  then rvm_debug "requirements lib type set to ${__lib_type}"
+  fi
+  if [[ "${__lib_type}" != "${__type}" ]] && is_a_function requirements_${__lib_type}_before
+  then requirements_${__lib_type}_before "$@" || return $?
+  fi
+  true # for osx
+}
+
+__rvm_requirements_run_define()
+{
+  typeset -a list
+  typeset element __handler
+  if is_a_function requirements_${__lib_type}_define
+  then __handler=requirements_${__lib_type}_define
+  else __handler=requirements_${__type}_define
+  fi
+
+  list=( rvm )
+  while (( $# )) && [[ -z "$1" ]]
+  do shift
+  done
+  if (( $# ))
+  then list+=( "$@" )
+  else list+=( ruby )
+  fi
+
+  for element in "${list[@]}"
+  do ${__handler} "${element}" || return $?
+  done
+  true
+}
+
+__rvm_requirements_run_summary_custom()
+{
+  if (( ${rvm_autolibs_flag_number} > 2 ))
+  then rvm_debug "Install $1 packages: ${_list// /, }."
+  fi
+  rvm_requiremnts_fail_or_run_action 3 "Missing $1 packages: ${_list}" true ||
+    return $?
+  true
+}
+
+__rvm_requirements_run_summary()
+{
+  (( ${#packages_custom[@]} == 0 )) ||
+  {
+    _list="${packages_custom[*]}"
+    __rvm_requirements_run_summary_custom "custom" || return $?
+  }
+  (( ${#packages_installed[@]} == 0 )) ||
+  {
+    _list="${packages_installed[*]}"
+    rvm_debug "Found required packages: ${_list// /, }."
+  }
+  (( ${#packages_missing[@]} == 0 )) ||
+  {
+    _list="${packages_missing[*]}"
+    rvm_requiremnts_fail_or_run_action 2 "Missing required packages: ${_list}" true ||
+      return $?
+  }
+  (( ${#packages_custom_after[@]} == 0 )) ||
+  {
+    _list="${packages_custom_after[*]}"
+    __rvm_requirements_run_summary_custom "custom after" || return $?
+  }
+}
+
+__rvm_requirements_run_update()
+{
+  if
+    (( ${#packages_to_install[@]} > 0 )) ||
+    (( ${#packages_custom[@]}+${#packages_custom_after[@]} > 0 && ${rvm_autolibs_flag_number} > 2 ))
+  then
+    rvm_log "Installing requirements for ${rvm_autolibs_flag_runner}."
+    if
+      is_a_function requirements_${__lib_type}_update_system
+    then
+      rvm_requiremnts_fail_or_run_action 3 \
+        "Skipping system update, make sure your system is up to date." \
+        __rvm_log_command update_system "Updating system" \
+        requirements_${__lib_type}_update_system "$@" || return $?
+    elif
+      is_a_function requirements_${__type}_update_system
+    then
+      rvm_requiremnts_fail_or_run_action 3 \
+        "Skipping system update, make sure your system is up to date." \
+        __rvm_log_command update_system "Updating system" \
+        requirements_${__type}_update_system "$@" || return $?
+    fi
+  fi
+}
+
+__rvm_requirements_run_custom_()
+{
+  typeset __package __custom
+  typeset -a __missing_custom
+  __missing_custom=()
+  __custom="$1"
+  shift
+
+  while
+    (( $# ))
+  do
+    __package="$1"
+    if
+      is_a_function requirements_${__lib_type}_install_${__package}
+    then
+      rvm_requiremnts_fail_or_run_action 2 \
+        "Skipping ${__package} installation, make sure ${__package} is installed." \
+        __rvm_log_command install_${__custom}_${__package} \
+        "Installing required ${__custom//_/ } package: ${__package}" \
+        "requirements_${__lib_type}_install_${__package}" || return $?
+    elif
+      is_a_function requirements_install_${__package}
+    then
+      rvm_requiremnts_fail_or_run_action 2 \
+        "Skipping ${__package} installation, make sure ${__package} is installed." \
+        __rvm_log_command install_${__custom}_${__package} \
+        "Installing required ${__custom//_/ } package: ${__package}" \
+        "requirements_install_${__package}" || return $?
+    else
+      __rvm_add_once __missing_custom "${__package}"
+    fi
+    shift
+  done
+
+  if
+    (( ${#__missing_custom[@]} ))
+  then
+    if
+      is_a_function requirements_${__lib_type}_install_${__custom}
+    then
+      rvm_requiremnts_fail_or_run_action 2 \
+        "Skipping ${__missing_custom[*]} installation, make sure listed software is installed." \
+        __rvm_log_command install_${__custom} \
+        "Installing required ${__custom//_/ } packages: ${__missing_custom[*]}" \
+        "requirements_${__lib_type}_install_${__custom}" "${__missing_custom[@]}" || return $?
+    else
+      rvm_requiremnts_fail_always 2 "\
+Can not find function 'requirements_${__lib_type}_install_${__custom}' to install missing ${__custom//_/ } packages:
+   ${__missing_custom[*]}
+report a bug here:
+   https://github.com/wayneeseguin/rvm/issues
+" || return $?
+    fi
+  fi
+}
+
+__rvm_requirements_run_custom()
+{
+  (( ${#packages_custom[@]} )) || return 0
+  __rvm_requirements_run_custom_ "custom" "${packages_custom[@]}" || return $?
+}
+
+__rvm_requirements_run_install()
+{
+  (( ${#packages_to_install[@]} )) || return 0
+  if
+    is_a_function requirements_${__lib_type}_lib_install
+  then
+    typeset __package
+    for __package in "${packages_to_install[@]}"
+    do
+      __rvm_log_command package_install_${__package} "Installing required package: ${__package}" \
+        "requirements_${__lib_type}_lib_install" "${__package}" ||
+      {
+        typeset __status=$?
+        _list="${packages_to_install[*]}"
+        rvm_warn "Failed installation package: ${__package} of: ${_list// /, }."
+        return ${__status}
+      }
+    done
+  else
+    _list="${packages_to_install[*]}"
+    __rvm_log_command package_install_${_list// /_} "Installing required packages: ${_list// /, }" \
+      "requirements_${__lib_type}_libs_install" "${packages_to_install[@]}" ||
+      return $?
+  fi
+}
+
+__rvm_requirements_run_custom_after()
+{
+  (( ${#packages_custom_after[@]} )) || return 0
+  __rvm_requirements_run_custom_ "custom_after" "${packages_custom_after[@]}" || return $?
+}
+
+__rvm_requirements_run_after()
+{
+  if
+    is_a_function requirements_${__lib_type}_after
+  then
+    requirements_${__lib_type}_after "$@" || return $?
+  elif
+    is_a_function requirements_${__type}_after
+  then
+    requirements_${__type}_after "$@" || return $?
+  fi
+  true # for osx
+}

@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+# old handlers before pkgng
+requirements_freebsd_lib_installed()
+{
+  pkg_info | __rvm_grep "^$1" >/dev/null 2>&1 || return $?
+}
+
+requirements_freebsd_libs_install()
+{
+  __rvm_try_sudo pkg_add -r "$@" || return $?
+}
+
+# new handlers for pkgng
+requirements_freebsd_pkgng_lib_installed()
+{
+  pkg info | __rvm_grep "^$1" >/dev/null 2>&1 || return $?
+}
+
+requirements_freebsd_pkgng_libs_install()
+{
+  __rvm_try_sudo pkg install -y "$@" || return $?
+}
+
+requirements_freebsd_install_node()
+{
+  # TODO: missing pkgng!
+  if
+    [[ -d /usr/ports ]]
+  then
+    __rvm_try_sudo portsnap fetch update  || return $?
+  else
+    rvm_requiremnts_fail_or_run_action 2 \
+      "Skipping portsnap fetch extract, make sure your system is up to date." \
+      __rvm_try_sudo portsnap fetch extract || return $?
+    packages_flags+=( "portsnap-extracted" )
+  fi
+  # plain make is required for sudo
+  __rvm_try_sudo make -C /usr/ports/www/node install clean || return $?
+}
+
+requirements_freebsd_before_detect_package_manager()
+{
+  if
+    __rvm_version_compare ${_system_version} -ge 10.0
+  then
+    __lib_type="freebsd_pkgng"
+  else
+    __lib_type="freebsd"
+    if
+      __rvm_which pkg >/dev/null    &&
+      [[ -s /var/db/pkg/local.sqlite ]]
+    then
+      __lib_type+='_pkgng'
+    fi
+  fi
+}
+
+requirements_freebsd_before()
+{
+  requirements_freebsd_before_detect_package_manager
+  # TODO: when the time is out deprecate the old pkg_tools https://wiki.freebsd.org/pkgng/CharterAndRoadMap
+}
+
+requirements_freebsd_update_system()
+{
+  case "${__lib_type}" in
+    (freebsd_pkgng)
+      if
+        [[ -s /usr/local/etc/pkg.conf ]]
+      then
+        __rvm_try_sudo pkg update || return $?
+      fi
+      ;;
+  esac
+}
+
+requirements_freebsd_define()
+{
+  case "$1" in
+    (rvm)
+      requirements_check bash curl
+      ;;
+    (jruby*)
+      if
+        is_head_or_disable_binary "$1"
+      then
+        requirements_check jdk git
+        if is_jruby_post17 "$1"
+        then __rvm_which mvn >/dev/null || requirements_check maven3
+        else __rvm_which ant >/dev/null || requirements_check apache-ant
+        fi
+      else
+        requirements_check jdk
+      fi
+      ;;
+    (ir*)
+      requirements_check mono
+      ;;
+    (opal)
+      requirements_check_custom node
+      ;;
+    (*-head)
+      requirements_check git
+      requirements_freebsd_define "${1%-head}"
+      ;;
+    (*)
+      # OpenSSL is installed by default http://www.freebsd.org/crypto.html
+      requirements_check autoconf automake libtool bison readline libyaml sqlite3 gdbm
+      __rvm_update_configure_opt_dir "$1" "/usr/local"
+      ;;
+  esac
+}
