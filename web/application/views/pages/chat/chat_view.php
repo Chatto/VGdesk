@@ -21,5 +21,10 @@
 	TheSlapOfGod: Someone was asking what song he was playing on his ipod when he was at the camp shooting people<br>
 	TheSlapOfGod: And the FIRST GOD DAMN RESPONSE was "Let the bodies hit the FJORD"<br>
 	</div>
+	
+	<div id="chat-input">
+		<textarea id="chat-textarea">Text here, Xika-dang</textarea>
+
+	</div>
 </div>
 <div id="chat-list">Chatto<br>Xander<br>Cloesy<br>Paula AMC<br>Seadrinker</div>

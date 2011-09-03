@@ -516,3 +516,8 @@ img.project-image
 {
 	height:30px;
 }
+#chat-textarea
+{
+	width:100%;
+	height:60px
+}
