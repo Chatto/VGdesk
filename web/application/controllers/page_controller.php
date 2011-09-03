@@ -43,14 +43,13 @@ class PageController extends CI_Controller
     protected function verifyUser()
     {
 	$userError = false;
+	$clientUsername = $this->input->post("username");
 
         if ($this->_user == null)
         {
 	    $userError = true;
         }
-
-	$clientUsername = $this->input->post("username");
-	if ($this->_user->username != $clientUsername)
+	else if ($this->_user->username != $clientUsername)
 	{
 	    $userError = true;
 	    $this->login_model->logoutUser();
