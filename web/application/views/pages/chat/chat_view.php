@@ -27,4 +27,11 @@
 
 	</div>
 </div>
-<div id="chat-list">Chatto<br>Xander<br>Cloesy<br>Paula AMC<br>Seadrinker</div>
+<div id="chat-list">
+	<div class="section-header">Online Now</div>
+	Chatto<br>
+	Xander<br>
+	Cloesy<br>
+	Paula AMC<br>
+	Seadrinker
+</div>
