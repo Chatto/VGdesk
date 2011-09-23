@@ -9,7 +9,7 @@ class Chat_model extends CI_Model
 	parent::__construct();
 
 	// Load Libraries
-	// Load
+	$this->load->helper('date');
 
 	// Load model components
 	
