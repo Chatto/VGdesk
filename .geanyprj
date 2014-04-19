@@ -1,8 +1,0 @@
-
-[project]
-name=VGdesk
-description=Project Management application with focus on collaborative Game Development.
-base_path=./
-run_cmd=
-regenerate=true
-type=All
